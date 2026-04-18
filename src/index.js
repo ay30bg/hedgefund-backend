@@ -44,7 +44,7 @@ app.use((req, res, next) => {
 
 // ================= ROOT =================
 app.get("/", (req, res) => {
-  res.json({ message: "RealSMS API is running 🚀" });
+  res.json({ message: "Hedgefund Power API is running 🚀" });
 });
 
 // ================= ROUTES =================
