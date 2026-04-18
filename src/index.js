@@ -4,49 +4,84 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 require("dotenv").config();
 
+// Routes
+const authRoutes = require("./routes/authRoutes");
+
 // ================= APP INIT =================
 const app = express();
 
-// ================= CORS CONFIG =================
+// ================= TRUST PROXY =================
+app.set("trust proxy", 1);
+
+// ================= CORS =================
 const allowedOrigins = [
   "http://localhost:3000",
+  "http://localhost:5173" // Vite support
 ];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.includes(origin)) {
         return callback(null, true);
-      } else {
-        return callback(new Error("CORS not allowed"));
       }
+      return callback(new Error("CORS blocked"));
     },
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    methods: ["GET", "POST", "PATCH", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
+    credentials: true
   })
 );
 
-// ================= MIDDLEWARE =================
-app.use(express.json());
+// ================= GLOBAL MIDDLEWARE =================
+app.use(express.json({ limit: "10mb" }));
+
+// Optional logger (very useful)
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+});
 
 // ================= ROOT =================
 app.get("/", (req, res) => {
-  res.json({ message: "Fresh server with CORS + methods 🚀" });
+  res.json({ message: "RealSMS API is running 🚀" });
 });
 
-// ================= DATABASE =================
+// ================= ROUTES =================
+app.use("/api/auth", authRoutes);
+
+// ================= 404 HANDLER =================
+app.use((req, res, next) => {
+  res.status(404).json({ message: "Route not found" });
+});
+
+// ================= GLOBAL ERROR HANDLER =================
+app.use((err, req, res, next) => {
+  console.error("SERVER ERROR:", err.message);
+
+  res.status(err.statusCode || 500).json({
+    message: err.message || "Something went wrong",
+    ...(process.env.NODE_ENV === "development" && {
+      stack: err.stack
+    })
+  });
+});
+
+// ================= MONGODB =================
 const connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URI);
     console.log("✅ MongoDB Connected");
   } catch (err) {
-    console.error("❌ MongoDB Error:", err.message);
+    console.error("❌ MongoDB Connection Error:", err.message);
     process.exit(1);
   }
 };
+
+// Better reconnect handling (no infinite spam loop)
+mongoose.connection.on("disconnected", () => {
+  console.warn("⚠️ MongoDB disconnected. Attempting reconnect...");
+});
 
 // ================= START SERVER =================
 const PORT = process.env.PORT || 5000;
