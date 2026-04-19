@@ -16,7 +16,7 @@ app.set("trust proxy", 1);
 // ================= CORS =================
 const allowedOrigins = [
   "http://localhost:3000",
-  "https://hedgefund-power.vercel.app/",
+  "https://hedgefund-power.vercel.app",
 ];
 
 app.use(
