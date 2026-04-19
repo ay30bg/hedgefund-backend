@@ -5,14 +5,29 @@ const userSchema = new mongoose.Schema(
     email: {
       type: String,
       required: true,
-      unique: true
+      unique: true,
+      lowercase: true,
+      trim: true
     },
+
     password: {
       type: String,
       required: true
     },
+
     referralCode: {
       type: String,
+      default: null
+    },
+
+    // ================= PASSWORD RESET FIELDS =================
+    resetToken: {
+      type: String,
+      default: null
+    },
+
+    resetTokenExpire: {
+      type: Date,
       default: null
     }
   },
