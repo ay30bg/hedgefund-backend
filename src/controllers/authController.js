@@ -89,7 +89,7 @@ exports.forgotPassword = async (req, res) => {
     const resetToken = crypto.randomBytes(32).toString("hex");
 
     user.resetToken = resetToken;
-    user.resetTokenExpire = Date.now() + 10 * 60 * 1000; // 10 mins
+    user.resetTokenExpire = Date.now() + 10 * 60 * 1000; 
 
     await user.save();
 
@@ -133,7 +133,7 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ message: "Invalid or expired token" });
     }
 
-    user.password = password; // (plain since you said no hashing)
+    user.password = password; 
     user.resetToken = undefined;
     user.resetTokenExpire = undefined;
 
