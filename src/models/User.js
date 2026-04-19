@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
   {
+    // ================= AUTH =================
     email: {
       type: String,
       required: true,
@@ -15,12 +16,35 @@ const userSchema = new mongoose.Schema(
       required: true
     },
 
+    // ================= PROFILE =================
+    name: {
+      type: String,
+      default: ""
+    },
+
+    avatar: {
+      type: String,
+      default: "https://i.pravatar.cc/100"
+    },
+
     referralCode: {
       type: String,
       default: null
     },
 
-    // ================= PASSWORD RESET FIELDS =================
+    // ================= WALLET =================
+    walletAddress: {
+      type: String,
+      default: ""
+    },
+
+    // ================= WITHDRAWAL SECURITY =================
+    withdrawalPassword: {
+      type: String,
+      default: ""
+    },
+
+    // ================= PASSWORD RESET =================
     resetToken: {
       type: String,
       default: null
