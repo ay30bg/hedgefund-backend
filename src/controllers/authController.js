@@ -1,4 +1,6 @@
 const User = require("../models/User");
+const crypto = require("crypto");
+const sendEmail = require("../utils/sendEmail");
 
 // ================= SIGNUP =================
 exports.signup = async (req, res) => {
@@ -70,26 +72,49 @@ exports.login = async (req, res) => {
   }
 };
 
+// ================= FORGOT PASSWORD =================
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
 
-    const normalizedEmail = email.toLowerCase().trim();
-
-    const user = await User.findOne({ email: normalizedEmail });
+    const user = await User.findOne({
+      email: email.toLowerCase().trim()
+    });
 
     if (!user) {
       return res.status(400).json({ message: "User not found" });
     }
 
-    // For now just simulate success
-    // Later you can add email sending (Nodemailer, SendGrid, etc.)
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString("hex");
+
+    user.resetToken = resetToken;
+    user.resetTokenExpire = Date.now() + 10 * 60 * 1000; // 10 mins
+
+    await user.save();
+
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+
+    const message = `
+      <h2>Password Reset Request</h2>
+      <p>You requested a password reset</p>
+      <p>Click below link to reset password:</p>
+      <a href="${resetUrl}" target="_blank">Reset Password</a>
+      <p>This link expires in 10 minutes.</p>
+    `;
+
+    await sendEmail({
+      email: user.email,
+      subject: "Password Reset",
+      message
+    });
 
     res.json({
-      message: "Password reset link sent to your email (simulated)"
+      message: "Reset link sent to email"
     });
 
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Server error" });
   }
 };
