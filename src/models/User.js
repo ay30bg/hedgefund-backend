@@ -32,6 +32,13 @@ const userSchema = new mongoose.Schema(
       default: null
     },
 
+   // ================= WALLET BALANCE =================
+    balance: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    
     // ================= WALLET =================
     walletAddress: {
       type: String,
