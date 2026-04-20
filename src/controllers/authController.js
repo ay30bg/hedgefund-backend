@@ -1,6 +1,47 @@
 const User = require("../models/User");
 const crypto = require("crypto");
 const sendEmail = require("../utils/sendEmail");
+const jwt = require("jsonwebtoken");
+
+// ================= LOGIN =================
+exports.login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const user = await User.findOne({ email: normalizedEmail });
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    if (password !== user.password) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    // ✅ CREATE TOKEN
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    // ✅ RETURN TOKEN
+    res.json({
+      message: "Login successful",
+      token, // 🔥 THIS WAS MISSING
+      user: {
+        id: user._id,
+        email: user.email
+      }
+    });
+
+  } catch (error) {
+    console.error("LOGIN ERROR:", error.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
 // ================= SIGNUP =================
 exports.signup = async (req, res) => {
@@ -38,39 +79,39 @@ exports.signup = async (req, res) => {
 };
 
 
-// ================= LOGIN =================
-exports.login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
+// // ================= LOGIN =================
+// exports.login = async (req, res) => {
+//   try {
+//     const { email, password } = req.body;
 
-    // Normalize email
-    const normalizedEmail = email.toLowerCase().trim();
+//     // Normalize email
+//     const normalizedEmail = email.toLowerCase().trim();
 
-    // Find user
-    const user = await User.findOne({ email: normalizedEmail });
+//     // Find user
+//     const user = await User.findOne({ email: normalizedEmail });
 
-    if (!user) {
-      return res.status(400).json({ message: "Invalid credentials" });
-    }
+//     if (!user) {
+//       return res.status(400).json({ message: "Invalid credentials" });
+//     }
 
-    // Plain password comparison
-    if (password !== user.password) {
-      return res.status(400).json({ message: "Invalid credentials" });
-    }
+//     // Plain password comparison
+//     if (password !== user.password) {
+//       return res.status(400).json({ message: "Invalid credentials" });
+//     }
 
-    res.json({
-      message: "Login successful",
-      user: {
-        id: user._id,
-        email: user.email
-      }
-    });
+//     res.json({
+//       message: "Login successful",
+//       user: {
+//         id: user._id,
+//         email: user.email
+//       }
+//     });
 
-  } catch (error) {
-    console.error("LOGIN ERROR:", error.message);
-    res.status(500).json({ message: "Server error" });
-  }
-};
+//   } catch (error) {
+//     console.error("LOGIN ERROR:", error.message);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
 
 // ================= FORGOT PASSWORD =================
 exports.forgotPassword = async (req, res) => {
