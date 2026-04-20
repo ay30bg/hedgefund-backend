@@ -7,7 +7,7 @@ const {
   setWithdrawalPassword
 } = require("../controllers/userController");
 
-const protect = require("../middleware/authMiddleware");
+const { protect } = require("../middleware/authMiddleware");
 
 // ================= USER ROUTES (PROTECTED) =================
 
