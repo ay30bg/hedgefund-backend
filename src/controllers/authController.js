@@ -78,41 +78,6 @@ exports.signup = async (req, res) => {
   }
 };
 
-
-// // ================= LOGIN =================
-// exports.login = async (req, res) => {
-//   try {
-//     const { email, password } = req.body;
-
-//     // Normalize email
-//     const normalizedEmail = email.toLowerCase().trim();
-
-//     // Find user
-//     const user = await User.findOne({ email: normalizedEmail });
-
-//     if (!user) {
-//       return res.status(400).json({ message: "Invalid credentials" });
-//     }
-
-//     // Plain password comparison
-//     if (password !== user.password) {
-//       return res.status(400).json({ message: "Invalid credentials" });
-//     }
-
-//     res.json({
-//       message: "Login successful",
-//       user: {
-//         id: user._id,
-//         email: user.email
-//       }
-//     });
-
-//   } catch (error) {
-//     console.error("LOGIN ERROR:", error.message);
-//     res.status(500).json({ message: "Server error" });
-//   }
-// };
-
 // ================= FORGOT PASSWORD =================
 exports.forgotPassword = async (req, res) => {
   try {
