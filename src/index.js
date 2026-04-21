@@ -9,6 +9,7 @@ const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const balanceRoutes = require("./routes/balanceRoutes");
 const marketRoutes = require("./routes/marketRoutes");
+const machineRoutes = require("./routes/machineRoutes");
 
 // ================= APP INIT =================
 const app = express();
@@ -55,6 +56,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/balance", balanceRoutes);
 app.use("/api/market", marketRoutes);
+app.use("/api/machine", machineRoutes);
 
 // ================= 404 HANDLER =================
 app.use((req, res, next) => {
