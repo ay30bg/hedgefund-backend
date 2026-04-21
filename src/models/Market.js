@@ -50,7 +50,7 @@ const marketSchema = new mongoose.Schema(
 
     duration: {
       type: Number,
-      required: true, // in days
+      required: true,
     },
 
     purchaseDate: {
@@ -82,3 +82,6 @@ const marketSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// ✅ THIS LINE WAS MISSING
+module.exports = mongoose.model("Market", marketSchema);
