@@ -62,27 +62,25 @@ const machines = [
   },
 ];
 
-const seedMachines = async () => {
+const seedMachinesIfEmpty = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URI);
 
     console.log("🔥 Connected to MongoDB");
 
-    // ⚠️ Optional: clear old data
-    await Machine.deleteMany();
+    const count = await Machine.countDocuments();
 
-    console.log("🧹 Old machines cleared");
+    if (count > 0) {
+      console.log("⚡ Machines already exist — skipping seed");
+      return;
+    }
 
-    // insert new machines
     await Machine.insertMany(machines);
 
     console.log("✅ Machines seeded successfully");
-
-    process.exit();
   } catch (err) {
-    console.error("❌ Seeding error:", err);
-    process.exit(1);
+    console.error("❌ Seeding error:", err.message);
   }
 };
 
-seedMachines();
+module.exports = seedMachinesIfEmpty;
