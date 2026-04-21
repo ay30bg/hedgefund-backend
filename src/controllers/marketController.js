@@ -57,19 +57,14 @@ exports.buyMachine = async (req, res) => {
   }
 };
 
-
-
-// ✅ GET USER MACHINES
 exports.getUserMachines = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const machines = await Market.find({ userId }).sort({ createdAt: -1 });
+    const machines = await Market.find({ userId });
 
-    res.status(200).json(machines);
-
-  } catch (error) {
-    console.error("Fetch Machines Error:", error);
+    res.status(200).json({ machines }); // ✅ IMPORTANT
+  } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
 };
