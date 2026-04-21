@@ -56,7 +56,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/balance", balanceRoutes);
 app.use("/api/market", marketRoutes);
-app.use("/api/machine", machineRoutes);
+app.use("/api/machines", machineRoutes);
 
 // ================= 404 HANDLER =================
 app.use((req, res, next) => {
