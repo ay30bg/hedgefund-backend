@@ -58,13 +58,36 @@ exports.getUserMachines = async (req, res) => {
 
     const machines = await Market.find({ userId });
 
-    res.status(200).json({ machines }); // ✅ IMPORTANT
+    const now = new Date();
+
+    const updatedMachines = machines.map((m) => {
+      let status = m.status;
+
+      // ✅ If time is past expiry → expired
+      if (now >= m.expiryDate && m.status !== "claimed") {
+        status = "expired";
+      }
+
+      // ✅ If still within time → running
+      if (now < m.expiryDate && m.status !== "claimed") {
+        status = "running";
+      }
+
+      return {
+        ...m._doc,
+        status
+      };
+    });
+
+    res.status(200).json({
+      machines: updatedMachines
+    });
+
   } catch (err) {
+    console.error("Fetch machines error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
-
-
 
 // ✅ OPTIONAL: UPDATE MACHINE STATUS (EXPIRED)
 exports.updateExpiredMachines = async (req, res) => {
