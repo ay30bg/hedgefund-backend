@@ -6,57 +6,52 @@ exports.buyMachine = async (req, res) => {
   try {
     const { userId, machine } = req.body;
 
-    // 🔍 Validate input
     if (!userId || !machine) {
       return res.status(400).json({ message: "Missing required data" });
     }
 
-    // 🔍 Find user
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+    // 🔴 BLOCK: same machine already running
+    const existingRunning = await Market.findOne({
+      userId,
+      name: machine.name,
+      status: "running"
+    });
+
+    if (existingRunning) {
+      return res.status(400).json({
+        message: "This machine is already running. Wait until it finishes."
+      });
     }
 
-    // ❌ Check balance
-    if (user.balance < machine.price) {
-      return res.status(400).json({ message: "Insufficient balance" });
-    }
-
-    // 📅 Dates
-    const purchaseDate = new Date();
+    // ✅ calculate expiry correctly
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + machine.duration);
 
-    // 💾 Save machine
-    const newMarketItem = new Market({
+    const newMachine = new Market({
       userId,
       name: machine.name,
       price: machine.price,
       profit: machine.profit,
       duration: machine.duration,
-      purchaseDate,
+      purchaseDate: new Date(),
       expiryDate,
       status: "running"
     });
 
-    await newMarketItem.save();
+    await newMachine.save();
 
-    // 💰 Deduct balance
-    user.balance -= machine.price;
-    await user.save();
-
-    return res.status(200).json({
+    res.status(201).json({
       message: "Machine purchased successfully",
-      balance: user.balance,
-      item: newMarketItem
+      item: newMachine
     });
 
-  } catch (error) {
-    console.error("Buy Machine Error:", error);
-    return res.status(500).json({ message: "Server error" });
+  } catch (err) {
+    console.error("Buy Machine Error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
+// ✅ GET USER MACHINE
 exports.getUserMachines = async (req, res) => {
   try {
     const { userId } = req.params;
