@@ -146,7 +146,7 @@ app.use(
 app.use(express.json({ limit: "10mb" }));
 
 // ✅ SERVE STATIC FILES (IMAGES)
-app.use("/uploads", express.static("src/uploads"));
+app.use("/uploads", express.static("../uploads"));
 
 // Optional logger
 app.use((req, res, next) => {
