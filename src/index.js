@@ -2,6 +2,7 @@
 // const express = require("express");
 // const mongoose = require("mongoose");
 // const cors = require("cors");
+// const path = require("path");
 // require("dotenv").config();
 
 // // Routes
@@ -10,6 +11,11 @@
 // const balanceRoutes = require("./routes/balanceRoutes");
 // const marketRoutes = require("./routes/marketRoutes");
 // const machineRoutes = require("./routes/machineRoutes");
+// const planRoutes = require("./routes/planRoutes");
+// const investRoutes = require("./routes/investRoutes");
+
+// // Seeder
+// const seedMachinesIfEmpty = require("./seed/machineSeed");
 
 // // ================= APP INIT =================
 // const app = express();
@@ -33,14 +39,20 @@
 //     },
 //     methods: ["GET", "POST", "PATCH", "PUT", "DELETE"],
 //     allowedHeaders: ["Content-Type", "Authorization"],
-//     credentials: true
+//     credentials: true,
 //   })
 // );
 
 // // ================= GLOBAL MIDDLEWARE =================
 // app.use(express.json({ limit: "10mb" }));
 
-// // Optional logger (very useful)
+// // ✅ SERVE STATIC FILES (IMAGES)
+//  app.use(
+//   "/uploads",
+//   express.static(path.join(__dirname, "../uploads"))
+// );
+
+// // Optional logger
 // app.use((req, res, next) => {
 //   console.log(`${req.method} ${req.url}`);
 //   next();
@@ -57,9 +69,11 @@
 // app.use("/api/balance", balanceRoutes);
 // app.use("/api/market", marketRoutes);
 // app.use("/api/machines", machineRoutes);
+// app.use("/api/plans", planRoutes);
+// app.use("/api/invest", investRoutes);
 
 // // ================= 404 HANDLER =================
-// app.use((req, res, next) => {
+// app.use((req, res) => {
 //   res.status(404).json({ message: "Route not found" });
 // });
 
@@ -70,8 +84,8 @@
 //   res.status(err.statusCode || 500).json({
 //     message: err.message || "Something went wrong",
 //     ...(process.env.NODE_ENV === "development" && {
-//       stack: err.stack
-//     })
+//       stack: err.stack,
+//     }),
 //   });
 // });
 
@@ -86,7 +100,7 @@
 //   }
 // };
 
-// // Better reconnect handling (no infinite spam loop)
+// // reconnect log
 // mongoose.connection.on("disconnected", () => {
 //   console.warn("⚠️ MongoDB disconnected. Attempting reconnect...");
 // });
@@ -94,11 +108,14 @@
 // // ================= START SERVER =================
 // const PORT = process.env.PORT || 5000;
 
-// connectDB().then(() => {
+// connectDB().then(async () => {
+//   // ✅ RUN SEEDER AFTER DB CONNECTS
+//   await seedMachinesIfEmpty();
+
 //   app.listen(PORT, () => {
 //     console.log(`🚀 Server running on port ${PORT}`);
 //   });
-// });
+// }); 
 
 // ================= IMPORTS =================
 const express = require("express");
@@ -116,8 +133,9 @@ const machineRoutes = require("./routes/machineRoutes");
 const planRoutes = require("./routes/planRoutes");
 const investRoutes = require("./routes/investRoutes");
 
-// Seeder
+// Seeders
 const seedMachinesIfEmpty = require("./seed/machineSeed");
+const seedPlansIfEmpty = require("./seed/planSeed"); // ✅ ADD THIS
 
 // ================= APP INIT =================
 const app = express();
@@ -149,7 +167,7 @@ app.use(
 app.use(express.json({ limit: "10mb" }));
 
 // ✅ SERVE STATIC FILES (IMAGES)
- app.use(
+app.use(
   "/uploads",
   express.static(path.join(__dirname, "../uploads"))
 );
@@ -211,10 +229,17 @@ mongoose.connection.on("disconnected", () => {
 const PORT = process.env.PORT || 5000;
 
 connectDB().then(async () => {
-  // ✅ RUN SEEDER AFTER DB CONNECTS
-  await seedMachinesIfEmpty();
+  try {
+    // ✅ RUN SEEDERS AFTER DB CONNECTS
+    await seedMachinesIfEmpty();
+    await seedPlansIfEmpty(); // ✅ ADD THIS
+
+    console.log("🌱 Seed check completed");
+  } catch (err) {
+    console.error("❌ Seeder error:", err.message);
+  }
 
   app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
   });
-}); 
+});
