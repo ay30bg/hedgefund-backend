@@ -40,7 +40,7 @@ const seedPlansIfEmpty = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URI);
 
-    console.log("🔥 Connected to MongoDB");
+    console.log("🔥 Connected to MongoDB"); 
 
     const count = await Plan.countDocuments();
 
