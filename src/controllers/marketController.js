@@ -10,6 +10,18 @@ exports.buyMachine = async (req, res) => {
       return res.status(400).json({ message: "Missing required data" });
     }
 
+    // 🔍 Find user
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // 💰 Check balance
+    if (user.balance < machine.price) {
+      return res.status(400).json({ message: "Insufficient balance" });
+    }
+
     // 🔴 BLOCK: same machine already running
     const existingRunning = await Market.findOne({
       userId,
@@ -23,10 +35,15 @@ exports.buyMachine = async (req, res) => {
       });
     }
 
-    // ✅ calculate expiry correctly
+    // 💸 Deduct balance
+    user.balance -= machine.price;
+    await user.save();
+
+    // ⏳ Set expiry
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + machine.duration);
 
+    // 📦 Save machine
     const newMachine = new Market({
       userId,
       name: machine.name,
@@ -40,9 +57,11 @@ exports.buyMachine = async (req, res) => {
 
     await newMachine.save();
 
-    res.status(201).json({
+    // ✅ RESPONSE NOW INCLUDES BALANCE
+    return res.status(201).json({
       message: "Machine purchased successfully",
-      item: newMachine
+      item: newMachine,
+      balance: user.balance
     });
 
   } catch (err) {
@@ -50,6 +69,7 @@ exports.buyMachine = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 // ✅ GET USER MACHINE
 exports.getUserMachines = async (req, res) => {
