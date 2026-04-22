@@ -158,7 +158,7 @@ const User = require("../models/User");
 const Machine = require("../models/Machine");
 
 // ==============================
-// BUY MACHINE (FULLY FIXED)
+// BUY MACHINE (FIXED - NO DUPLICATES)
 // ==============================
 exports.buyMachine = async (req, res) => {
   const session = await mongoose.startSession();
@@ -169,11 +169,13 @@ exports.buyMachine = async (req, res) => {
     const { machineId } = req.body;
 
     if (!machineId) {
+      await session.abortTransaction();
       return res.status(400).json({ message: "Machine ID required" });
     }
 
     // 🔍 Get machine
     const machine = await Machine.findById(machineId).session(session);
+
     if (!machine) {
       await session.abortTransaction();
       return res.status(404).json({ message: "Machine not found" });
@@ -181,12 +183,11 @@ exports.buyMachine = async (req, res) => {
 
     const now = new Date();
 
-    // 🚫 OPTION A: Block SAME machine if still active
+    // 🚫 FIXED: BLOCK ACTIVE MACHINE (TIME-BASED ONLY — RELIABLE)
     const existingActive = await Market.findOne({
       userId,
       machineId: machine._id,
-      status: "running",
-      expiryDate: { $gt: now },
+      expiryDate: { $gt: now }, // ONLY TRUTH SOURCE
     }).session(session);
 
     if (existingActive) {
@@ -196,7 +197,7 @@ exports.buyMachine = async (req, res) => {
       });
     }
 
-    // 💰 ATOMIC BALANCE DEDUCTION (prevents race condition)
+    // 💰 ATOMIC BALANCE DEDUCTION (fixes race condition)
     const user = await User.findOneAndUpdate(
       {
         _id: userId,
@@ -216,11 +217,11 @@ exports.buyMachine = async (req, res) => {
       return res.status(400).json({ message: "Insufficient balance" });
     }
 
-    // ⏳ Expiry
+    // ⏳ EXPIRY CALCULATION
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + machine.duration);
 
-    // 📦 Save purchase
+    // 📦 CREATE PURCHASE
     const newPurchase = await Market.create(
       [
         {
@@ -252,12 +253,12 @@ exports.buyMachine = async (req, res) => {
     session.endSession();
 
     console.error("Buy Machine Error:", err);
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
 // ==============================
-// GET USER MACHINES (FIXED)
+// GET USER MACHINES (CLEANED)
 // ==============================
 exports.getUserMachines = async (req, res) => {
   try {
@@ -269,11 +270,10 @@ exports.getUserMachines = async (req, res) => {
     const updatedMachines = machines.map((m) => {
       let status = m.status;
 
-      if (now >= m.expiryDate && m.status !== "claimed") {
+      // 🔥 RELIABLE STATUS CALCULATION
+      if (m.expiryDate && now >= m.expiryDate) {
         status = "expired";
-      }
-
-      if (now < m.expiryDate && m.status !== "claimed") {
+      } else {
         status = "running";
       }
 
@@ -294,7 +294,7 @@ exports.getUserMachines = async (req, res) => {
 };
 
 // ==============================
-// UPDATE EXPIRED MACHINES
+// UPDATE EXPIRED MACHINES (OPTIONAL SAFETY JOB)
 // ==============================
 exports.updateExpiredMachines = async (req, res) => {
   try {
@@ -310,12 +310,12 @@ exports.updateExpiredMachines = async (req, res) => {
       }
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       message: "Expired machines updated",
     });
 
   } catch (error) {
     console.error("Update Expiry Error:", error);
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Server error" });
   }
 };
