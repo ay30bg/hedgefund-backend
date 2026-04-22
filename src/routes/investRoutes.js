@@ -1,19 +1,17 @@
-// const express = require("express");
-// const router = express.Router();
-
-// const { createInvestment } = require("../controllers/investController");
-// const { protect } = require("../middleware/authMiddleware");
-
-// router.post("/invest", protect, createInvestment);
-
-// module.exports = router;
+const express = require("express");
+const router = express.Router();
 
 const {
   createInvestment,
-  getUserInvestments
+  getUserInvestments,
 } = require("../controllers/investController");
 
-router.post("/invest", protect, createInvestment);
+const { protect } = require("../middleware/authMiddleware");
 
-// ✅ ADD THIS
+// ✅ Create investment
+router.post("/", protect, createInvestment);
+
+// ✅ Get logged-in user's investments
 router.get("/user", protect, getUserInvestments);
+
+module.exports = router;
