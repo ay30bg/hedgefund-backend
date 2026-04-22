@@ -8,31 +8,31 @@ const plans = [
     name: "Starter Gold Farm",
     days: 7,
     percent: 18,
-    image: "goldCoin",
+    image: "/uploads/plans/gold-coins.png",
   },
   {
     name: "Silver Growth Farm",
     days: 14,
     percent: 36,
-    image: "goldBar",
+    image: "/uploads/plans/gold-bar.png",
   },
   {
     name: "Golden Harvest Farm",
     days: 35,
     percent: 160,
-    image: "goldBarStack",
+    image: "/uploads/plans/gold-bar-stack.png",
   },
   {
     name: "Diamond Yield Farm",
     days: 120,
     percent: 1200,
-    image: "goldBarStacked",
+    image: "/uploads/plans/gold-bar-stacked.png",
   },
   {
     name: "Ultimate Vault Farm",
     days: 200,
     percent: 2500,
-    image: "goldVault",
+    image: "/uploads/plans/gold-vault.png",
   },
 ];
 
