@@ -9,7 +9,7 @@ const machines = [
     price: 10,
     profit: 0.0264,
     duration: 21,
-    img: "/pp1.png",
+    img: "uploads/machines/pp1.png",
   },
   {
     name: "Godspeed Power Pumping Machine",
