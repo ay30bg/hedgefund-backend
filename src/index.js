@@ -171,7 +171,7 @@ app.use("/api/user", userRoutes);
 app.use("/api/balance", balanceRoutes);
 app.use("/api/market", marketRoutes);
 app.use("/api/machines", machineRoutes);
-app.use("/api/plan", planRoutes);
+app.use("/api/plans", planRoutes);
 app.use("/api/invest", investRoutes);
 
 // ================= 404 HANDLER =================
