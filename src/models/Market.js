@@ -32,6 +32,13 @@ const marketSchema = new mongoose.Schema(
       index: true,
     },
 
+    machineId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Machine",
+      required: true,
+      index: true,
+    },
+
     name: {
       type: String,
       required: true,
