@@ -113,6 +113,7 @@ const userRoutes = require("./routes/userRoutes");
 const balanceRoutes = require("./routes/balanceRoutes");
 const marketRoutes = require("./routes/marketRoutes");
 const machineRoutes = require("./routes/machineRoutes");
+const planRoutes = require("./routes/planRoutes");
 const investRoutes = require("./routes/investRoutes");
 
 // Seeder
@@ -170,6 +171,7 @@ app.use("/api/user", userRoutes);
 app.use("/api/balance", balanceRoutes);
 app.use("/api/market", marketRoutes);
 app.use("/api/machines", machineRoutes);
+app.use("/api/plan", planRoutes);
 app.use("/api/invest", investRoutes);
 
 // ================= 404 HANDLER =================
