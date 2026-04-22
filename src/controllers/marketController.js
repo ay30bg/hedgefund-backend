@@ -1,23 +1,102 @@
+// const Market = require("../models/Market");
+// const User = require("../models/User");
+
+// // ✅ BUY MACHINE
+// exports.buyMachine = async (req, res) => {
+//   try {
+//     const { userId, machine } = req.body;
+
+//     if (!userId || !machine) {
+//       return res.status(400).json({ message: "Missing required data" });
+//     }
+
+//     // 🔍 Find user
+//     const user = await User.findById(userId);
+
+//     if (!user) {
+//       return res.status(404).json({ message: "User not found" });
+//     }
+
+//     // 💰 Check balance
+//     if (user.balance < machine.price) {
+//       return res.status(400).json({ message: "Insufficient balance" });
+//     }
+
+//     // 🔴 BLOCK: same machine already running
+//     const existingRunning = await Market.findOne({
+//       userId,
+//       name: machine.name,
+//       status: "running"
+//     });
+
+//     if (existingRunning) {
+//       return res.status(400).json({
+//         message: "This machine is already running. Wait until it finishes."
+//       });
+//     }
+
+//     // 💸 Deduct balance
+//     user.balance -= machine.price;
+//     await user.save();
+
+//     // ⏳ Set expiry
+//     const expiryDate = new Date();
+//     expiryDate.setDate(expiryDate.getDate() + machine.duration);
+
+//     // 📦 Save machine
+//     const newMachine = new Market({
+//       userId,
+//       name: machine.name,
+//       price: machine.price,
+//       profit: machine.profit,
+//       duration: machine.duration,
+//       purchaseDate: new Date(),
+//       expiryDate,
+//       status: "running"
+//     });
+
+//     await newMachine.save();
+
+//     // ✅ RESPONSE NOW INCLUDES BALANCE
+//     return res.status(201).json({
+//       message: "Machine purchased successfully",
+//       item: newMachine,
+//       balance: user.balance
+//     });
+
+//   } catch (err) {
+//     console.error("Buy Machine Error:", err);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
+
 const Market = require("../models/Market");
 const User = require("../models/User");
+const Machine = require("../models/Machine");
 
-// ✅ BUY MACHINE
+// ✅ BUY MACHINE (SECURE VERSION)
 exports.buyMachine = async (req, res) => {
   try {
-    const { userId, machine } = req.body;
+    const userId = req.user.id; // 🔐 FROM JWT (NOT FRONTEND)
+    const { machineId } = req.body;
 
-    if (!userId || !machine) {
-      return res.status(400).json({ message: "Missing required data" });
+    if (!machineId) {
+      return res.status(400).json({ message: "Machine ID required" });
     }
 
     // 🔍 Find user
     const user = await User.findById(userId);
-
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // 💰 Check balance
+    // 🔍 Get machine from DB (NEVER TRUST FRONTEND)
+    const machine = await Machine.findById(machineId);
+    if (!machine) {
+      return res.status(404).json({ message: "Machine not found" });
+    }
+
+    // 💰 Check balance (SERVER TRUTH)
     if (user.balance < machine.price) {
       return res.status(400).json({ message: "Insufficient balance" });
     }
@@ -26,24 +105,24 @@ exports.buyMachine = async (req, res) => {
     const existingRunning = await Market.findOne({
       userId,
       name: machine.name,
-      status: "running"
+      status: "running",
     });
 
     if (existingRunning) {
       return res.status(400).json({
-        message: "This machine is already running. Wait until it finishes."
+        message: "This machine is already running. Wait until it finishes.",
       });
     }
 
-    // 💸 Deduct balance
+    // 💸 Deduct balance (SAFE)
     user.balance -= machine.price;
     await user.save();
 
-    // ⏳ Set expiry
+    // ⏳ Expiry date
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + machine.duration);
 
-    // 📦 Save machine
+    // 📦 Save purchase
     const newMachine = new Market({
       userId,
       name: machine.name,
@@ -52,16 +131,15 @@ exports.buyMachine = async (req, res) => {
       duration: machine.duration,
       purchaseDate: new Date(),
       expiryDate,
-      status: "running"
+      status: "running",
     });
 
     await newMachine.save();
 
-    // ✅ RESPONSE NOW INCLUDES BALANCE
     return res.status(201).json({
       message: "Machine purchased successfully",
       item: newMachine,
-      balance: user.balance
+      balance: user.balance,
     });
 
   } catch (err) {
@@ -69,7 +147,6 @@ exports.buyMachine = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
 
 // ✅ GET USER MACHINE
 exports.getUserMachines = async (req, res) => {
