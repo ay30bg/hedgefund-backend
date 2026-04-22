@@ -209,4 +209,4 @@ connectDB().then(async () => {
   app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
   });
-});
+}); 
