@@ -14,7 +14,8 @@ const investmentSchema = new mongoose.Schema({
     type: String,
     default: "active"
   },
-  startDate: Date
+  startDate: Date,
+  endDate: Date, 
 });
 
 module.exports = mongoose.model("Investment", investmentSchema);
