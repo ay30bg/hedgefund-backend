@@ -78,10 +78,21 @@ exports.createInvestment = async (req, res) => {
 exports.getUserInvestments = async (req, res) => {
   try {
     const investments = await Investment.find({
-      user: req.user.id
+      user: req.user.id,
     }).sort({ createdAt: -1 });
 
-    res.status(200).json({ investments });
+    const formatted = investments.map((inv) => ({
+      _id: inv._id,
+      name: inv.plan, // ✅ match frontend
+      amount: inv.amount,
+      profit: inv.expectedIncome, // ✅ match frontend
+      days: inv.days,
+      startDate: inv.startDate,
+      endDate: inv.endDate,
+      status: inv.status,
+    }));
+
+    res.status(200).json({ investments: formatted });
   } catch (err) {
     console.error("GET INVESTMENTS ERROR:", err);
     res.status(500).json({ message: "Server error" });
