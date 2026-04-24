@@ -1,130 +1,66 @@
-// const Plan = require("../models/Plan");
-// const Machine = require("../models/Machine");
-
-// exports.getPortfolio = async (req, res) => {
-//   try {
-//     const plans = await Plan.find();
-//     const machines = await Machine.find();
-
-//     // ================= ROI CALC =================
-//     const avgROI =
-//       plans.length > 0
-//         ? plans.reduce((sum, p) => sum + p.percent, 0) / plans.length
-//         : 0;
-
-//     // ================= MARKET STATUS =================
-//     let marketStatus = "Stable";
-//     let marketNote = "Moderate returns";
-//     let riskLevel = "Medium";
-
-//     if (avgROI > 500) {
-//       marketStatus = "High Growth";
-//       marketNote = "High ROI • High risk";
-//       riskLevel = "High";
-//     } else if (avgROI < 100) {
-//       marketStatus = "Low Yield";
-//       marketNote = "Low risk • Stable";
-//       riskLevel = "Low";
-//     }
-
-//     // ================= BEST MACHINE =================
-//     const bestMachine =
-//       machines.length > 0
-//         ? machines.reduce((prev, curr) =>
-//             curr.profit > prev.profit ? curr : prev
-//           )
-//         : null;
-
-//     const bestMachineYield = bestMachine
-//       ? bestMachine.profit * 24
-//       : 0;
-
-//     // ================= EFFICIENCY (EXAMPLE LOGIC) =================
-//     const efficiency =
-//       machines.length > 0
-//         ? Math.min(100, Math.round((machines.length / 10) * 100))
-//         : 0;
-
-//     // ================= RESPONSE =================
-//     res.json({
-//       portfolio: {
-//         assetSummary: {
-//           plansCount: plans.length,
-//           machinesCount: machines.length,
-//           bestDailyYield: bestMachineYield,
-//           bestMachineName: bestMachine?.name || null,
-//         },
-
-//         strength: {
-//           roiPower: Math.round(avgROI),
-//           efficiency,
-//           riskLevel,
-//         },
-
-//         market: {
-//           status: marketStatus,
-//           note: marketNote,
-//         },
-//       },
-//     });
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ message: "Server error" });
-//   }
-// };
-
-const Plan = require("../models/Plan");
-const Machine = require("../models/Machine");
-const Market = require("../models/Market"); // ✅ IMPORTANT
+const Market = require("../models/Market");        // user machines
+const Investment = require("../models/Investment"); // user investments
 
 exports.getPortfolio = async (req, res) => {
   try {
-    const userId = req.user.id; // ✅ get current user
+    const userId = req.user.id;
     const now = new Date();
 
-    const plans = await Plan.find();
-    const machines = await Machine.find();
-
-    // ✅ USER-OWNED MACHINES (THE REAL DATA YOU NEED)
+    // ================= FETCH USER DATA =================
     const userMachines = await Market.find({ userId });
+    const userInvestments = await Investment.find({ user: userId });
 
-    // ✅ OPTIONAL: ACTIVE ONLY
+    // ================= ACTIVE FILTER =================
     const activeMachines = userMachines.filter(
       (m) => m.expiryDate && m.expiryDate > now
     );
 
-    // ================= ROI CALC =================
-    const avgROI =
-      plans.length > 0
-        ? plans.reduce((sum, p) => sum + p.percent, 0) / plans.length
-        : 0;
+    const activeInvestments = userInvestments.filter(
+      (i) => i.endDate && i.endDate > now
+    );
 
-    // ================= MARKET STATUS =================
-    let marketStatus = "Stable";
-    let marketNote = "Moderate returns";
-    let riskLevel = "Medium";
-
-    if (avgROI > 500) {
-      marketStatus = "High Growth";
-      marketNote = "High ROI • High risk";
-      riskLevel = "High";
-    } else if (avgROI < 100) {
-      marketStatus = "Low Yield";
-      marketNote = "Low risk • Stable";
-      riskLevel = "Low";
-    }
-
-    // ================= BEST MACHINE =================
+    // ================= BEST MACHINE (USER OWNED) =================
     const bestMachine =
-      machines.length > 0
-        ? machines.reduce((prev, curr) =>
+      activeMachines.length > 0
+        ? activeMachines.reduce((prev, curr) =>
             curr.profit > prev.profit ? curr : prev
           )
         : null;
 
-    const bestMachineYield = bestMachine
+    const bestDailyYield = bestMachine
       ? bestMachine.profit * 24
       : 0;
+
+    // ================= REAL ROI (USER MONEY BASED) =================
+    const totalInvested = userInvestments.reduce(
+      (sum, inv) => sum + inv.amount,
+      0
+    );
+
+    const totalProfit = userInvestments.reduce(
+      (sum, inv) => sum + inv.expectedIncome,
+      0
+    );
+
+    const roiPower =
+      totalInvested > 0
+        ? (totalProfit / totalInvested) * 100
+        : 0;
+
+    // ================= MARKET / RISK =================
+    let marketStatus = "Stable";
+    let marketNote = "Moderate returns";
+    let riskLevel = "Medium";
+
+    if (roiPower > 200) {
+      marketStatus = "High Growth";
+      marketNote = "High ROI • High risk";
+      riskLevel = "High";
+    } else if (roiPower < 50) {
+      marketStatus = "Low Yield";
+      marketNote = "Low risk • Stable";
+      riskLevel = "Low";
+    }
 
     // ================= EFFICIENCY =================
     const efficiency =
@@ -136,20 +72,27 @@ exports.getPortfolio = async (req, res) => {
     res.json({
       portfolio: {
         assetSummary: {
-          plansCount: plans.length,
-
-          // ✅ FIXED (use user machines, not all machines)
+          // ✅ ACTIVE ONLY (what user currently has running)
+          plansCount: activeInvestments.length,
           machinesCount: activeMachines.length,
 
-          totalOwnedMachines: userMachines.length, // 🔥 bonus
-          expiredMachines: userMachines.length - activeMachines.length, // 🔥 bonus
+          // ✅ TOTAL OWNED
+          totalOwnedPlans: userInvestments.length,
+          totalOwnedMachines: userMachines.length,
 
-          bestDailyYield: bestMachineYield,
+          // ✅ EXPIRED
+          expiredPlans:
+            userInvestments.length - activeInvestments.length,
+          expiredMachines:
+            userMachines.length - activeMachines.length,
+
+          // ✅ PERFORMANCE
+          bestDailyYield,
           bestMachineName: bestMachine?.name || null,
         },
 
         strength: {
-          roiPower: Math.round(avgROI),
+          roiPower: Math.round(roiPower),
           efficiency,
           riskLevel,
         },
@@ -161,7 +104,7 @@ exports.getPortfolio = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error(err);
+    console.error("Portfolio Error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
