@@ -72,5 +72,4 @@ const marketSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// ✅ THIS LINE WAS MISSING
 module.exports = mongoose.model("Market", marketSchema);
