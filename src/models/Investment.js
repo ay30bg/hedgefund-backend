@@ -16,6 +16,10 @@ const investmentSchema = new mongoose.Schema({
   },
   startDate: Date,
   endDate: Date, 
+   claimed: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 module.exports = mongoose.model("Investment", investmentSchema);
