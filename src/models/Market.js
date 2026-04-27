@@ -54,6 +54,11 @@ const marketSchema = new mongoose.Schema(
       index: true,
     },
 
+    claimed: {
+      type: Boolean,
+      default: false,
+    },
+
     claimedAt: {
       type: Date,
       default: null,
