@@ -20,6 +20,12 @@ const investmentSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  claimedAt: {
+      type: Date,
+      default: null,
+    },
+  },
+  { timestamps: true }
 });
 
 module.exports = mongoose.model("Investment", investmentSchema);
