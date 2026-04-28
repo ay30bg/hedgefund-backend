@@ -4,9 +4,9 @@ const router = express.Router();
 const {
   createWithdrawal,
   getUserWithdrawals,
-  getAllWithdrawals,
-  approveWithdrawal,
-  rejectWithdrawal,
+  // getAllWithdrawals,
+  // approveWithdrawal,
+  // rejectWithdrawal,
 } = require("../controllers/withdrawController");
 
 const { protect } = require("../middleware/authMiddleware");
