@@ -44,3 +44,14 @@ exports.createWithdrawal = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+exports.getUserWithdrawals = async (req, res) => {
+  try {
+    const withdrawals = await Withdrawal.find({ userId: req.user.id })
+      .sort({ createdAt: -1 });
+
+    res.json(withdrawals);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
