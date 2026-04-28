@@ -13,10 +13,11 @@ const machineRoutes = require("./routes/machineRoutes");
 const planRoutes = require("./routes/planRoutes");
 const investRoutes = require("./routes/investRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
 
 // Seeders
 const seedMachinesIfEmpty = require("./seed/machineSeed");
-const seedPlansIfEmpty = require("./seed/planSeed"); // ✅ ADD THIS
+const seedPlansIfEmpty = require("./seed/planSeed"); 
 
 // ================= APP INIT =================
 const app = express();
@@ -73,6 +74,7 @@ app.use("/api/machines", machineRoutes);
 app.use("/api/plans", planRoutes);
 app.use("/api/invest", investRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/payments", paymentRoutes);
 
 // ================= 404 HANDLER =================
 app.use((req, res) => {
