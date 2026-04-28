@@ -1,4 +1,4 @@
-const Withdrawal = require("../models/Withdrawal");
+const Withdrawal = require("../models/Withdraw");
 const User = require("../models/User");
 
 exports.createWithdrawal = async (req, res) => {
