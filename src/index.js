@@ -14,6 +14,7 @@ const planRoutes = require("./routes/planRoutes");
 const investRoutes = require("./routes/investRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
+const withdrawRoutes = require("./routes/withdrawRoutes");
 
 // Seeders
 const seedMachinesIfEmpty = require("./seed/machineSeed");
@@ -75,6 +76,7 @@ app.use("/api/plans", planRoutes);
 app.use("/api/invest", investRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/withdraw", withdrawRoutes);
 
 // ================= 404 HANDLER =================
 app.use((req, res) => {
