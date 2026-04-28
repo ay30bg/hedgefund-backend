@@ -2,9 +2,56 @@ const axios = require("axios");
 const Payment = require("../models/Payment");
 const User = require("../models/User");
 
-// ==============================
-// CREATE PAYMENT (BSC)
-// ==============================
+// // ==============================
+// // CREATE PAYMENT (BSC)
+// // ==============================
+// exports.createPayment = async (req, res) => {
+//   try {
+//     const { amount } = req.body;
+//     const userId = req.user.id;
+
+//     if (!amount || amount < 10) {
+//       return res.status(400).json({ error: "Minimum deposit is $10" });
+//     }
+
+//     const orderId = `TOPUP_${userId}_${Date.now()}`;
+
+//     const response = await axios.post(
+//       "https://api.nowpayments.io/v1/payment",
+//       {
+//         price_amount: amount,
+//         price_currency: "usd",
+//         pay_currency: "usdtbsc", // ✅ BSC
+//         order_id: orderId,
+//         ipn_callback_url: `${process.env.BASE_URL}/api/payments/webhook`,
+//       },
+//       {
+//         headers: {
+//           "x-api-key": process.env.NOWPAYMENTS_API_KEY,
+//         },
+//       }
+//     );
+
+//     const data = response.data;
+
+//     await Payment.create({
+//       userId,
+//       paymentId: data.payment_id,
+//       orderId,
+//       amountUSD: amount,
+//       payAmount: data.pay_amount,
+//       payCurrency: data.pay_currency,
+//       address: data.pay_address,
+//       status: data.payment_status,
+//     });
+
+//     res.json(data);
+//   } catch (err) {
+//     console.error(err.response?.data || err.message);
+//     res.status(500).json({ error: "Payment creation failed" });
+//   }
+// };
+
 exports.createPayment = async (req, res) => {
   try {
     const { amount } = req.body;
@@ -14,16 +61,24 @@ exports.createPayment = async (req, res) => {
       return res.status(400).json({ error: "Minimum deposit is $10" });
     }
 
+    const baseURL = process.env.BASE_URL;
+
+    if (!baseURL || !baseURL.startsWith("http")) {
+      return res.status(500).json({
+        error: "BASE_URL is missing or invalid in .env",
+      });
+    }
+
     const orderId = `TOPUP_${userId}_${Date.now()}`;
 
-    const response = await axios.post(
+    const { data } = await axios.post(
       "https://api.nowpayments.io/v1/payment",
       {
-        price_amount: amount,
+        price_amount: Number(amount),
         price_currency: "usd",
-        pay_currency: "usdtbsc", // ✅ BSC
+        pay_currency: "usdtbsc",
         order_id: orderId,
-        ipn_callback_url: `${process.env.BASE_URL}/api/payments/webhook`,
+        ipn_callback_url: `${baseURL}/api/payments/webhook`,
       },
       {
         headers: {
@@ -32,23 +87,21 @@ exports.createPayment = async (req, res) => {
       }
     );
 
-    const data = response.data;
-
     await Payment.create({
       userId,
       paymentId: data.payment_id,
       orderId,
-      amountUSD: amount,
+      amountUSD: Number(amount),
       payAmount: data.pay_amount,
       payCurrency: data.pay_currency,
       address: data.pay_address,
       status: data.payment_status,
     });
 
-    res.json(data);
+    return res.json(data);
   } catch (err) {
-    console.error(err.response?.data || err.message);
-    res.status(500).json({ error: "Payment creation failed" });
+    console.error("CREATE PAYMENT ERROR:", err.response?.data || err.message);
+    return res.status(500).json({ error: "Payment creation failed" });
   }
 };
 
