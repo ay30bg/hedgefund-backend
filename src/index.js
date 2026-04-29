@@ -15,7 +15,7 @@ const investRoutes = require("./routes/investRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const withdrawRoutes = require("./routes/withdrawRoutes");
-const TransactionsRoutes = require("./routes/transactionsRoutes");
+const transactionsRoutes = require("./routes/transactionsRoutes");
 
 // Seeders
 const seedMachinesIfEmpty = require("./seed/machineSeed");
