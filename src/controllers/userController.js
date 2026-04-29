@@ -80,59 +80,6 @@ exports.bindWallet = async (req, res) => {
 };
 
 // ================= WITHDRAWAL PASSWORD (SET / CHANGE) =================
-// exports.setWithdrawalPassword = async (req, res) => {
-//   try {
-//     const { password, currentPassword } = req.body;
-
-//     if (!password) {
-//       return res.status(400).json({ message: "New password is required" });
-//     }
-
-//     const user = await User.findById(req.user.id);
-
-//     if (!user) {
-//       return res.status(404).json({ message: "User not found" });
-//     }
-
-//     // 🔐 If password already exists → require current password
-//     if (user.withdrawalPassword) {
-//       if (!currentPassword) {
-//         return res.status(400).json({
-//           message: "Current password is required"
-//         });
-//       }
-
-//       const isMatch = await bcrypt.compare(
-//         currentPassword,
-//         user.withdrawalPassword
-//       );
-
-//       if (!isMatch) {
-//         return res.status(401).json({
-//           message: "Incorrect current password"
-//         });
-//       }
-//     }
-
-//     // 🔐 Hash new password
-//     const hashedPassword = await bcrypt.hash(password, 10);
-
-//     user.withdrawalPassword = hashedPassword;
-//     await user.save();
-
-//     res.json({
-//       message: user.withdrawalPassword
-//         ? "Withdrawal password updated successfully"
-//         : "Withdrawal password set successfully"
-//     });
-//   } catch (error) {
-//     res.status(500).json({
-//       message: "Server error",
-//       error: error.message
-//     });
-//   }
-// };
-
 exports.setWithdrawalPassword = async (req, res) => {
   try {
     const { password, currentPassword } = req.body;
@@ -147,7 +94,7 @@ exports.setWithdrawalPassword = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // 🔐 If withdrawal password already exists → verify current withdrawal password
+    // 🔐 If password already exists → require current password
     if (user.withdrawalPassword) {
       if (!currentPassword) {
         return res.status(400).json({
@@ -162,24 +109,12 @@ exports.setWithdrawalPassword = async (req, res) => {
 
       if (!isMatch) {
         return res.status(401).json({
-          message: "Incorrect current withdrawal password"
+          message: "Incorrect current password"
         });
       }
     }
 
-    // 🚫 BLOCK: Prevent using login password as withdrawal password
-    const isSameAsLoginPassword = await bcrypt.compare(
-      password,
-      user.password
-    );
-
-    if (isSameAsLoginPassword) {
-      return res.status(400).json({
-        message: "Withdrawal password cannot be the same as account password"
-      });
-    }
-
-    // 🔐 Hash new withdrawal password
+    // 🔐 Hash new password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     user.withdrawalPassword = hashedPassword;
@@ -197,6 +132,7 @@ exports.setWithdrawalPassword = async (req, res) => {
     });
   }
 };
+
 
 // ================= GET USER PREFERENCES =================
 exports.getUserPreferences = async (req, res) => {
