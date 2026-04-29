@@ -34,10 +34,10 @@ const withdrawalSchema = new mongoose.Schema(
       default: "PENDING",
     },
 
-    withdrawalPassword: {
-      type: String,
-      required: true,
-    },
+    // withdrawalPassword: {
+    //   type: String,
+    //   required: true,
+    // },
 
     processedAt: Date,
   },
