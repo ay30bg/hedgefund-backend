@@ -175,7 +175,7 @@ exports.createWithdrawal = async (req, res) => {
     }
 
     // =========================
-    // 3. WITHDRAWAL PASSWORD CHECK (SECURE)
+    // 3. WITHDRAWAL PASSWORD CHECK (SAFE + FIXED)
     // =========================
     if (!password) {
       return res.status(400).json({
@@ -185,14 +185,34 @@ exports.createWithdrawal = async (req, res) => {
 
     if (!user.withdrawalPassword) {
       return res.status(400).json({
-        message: "Please set withdrawal password first",
+        message: "Withdrawal password not set. Please set it first.",
       });
     }
 
-    const isPasswordValid = await bcrypt.compare(
-      password,
-      user.withdrawalPassword
-    );
+    let isPasswordValid = false;
+
+    try {
+      // =========================
+      // SUPPORT LEGACY + HASHED PASSWORDS
+      // =========================
+      if (typeof user.withdrawalPassword === "string") {
+        if (user.withdrawalPassword.startsWith("$2")) {
+          // bcrypt hashed password
+          isPasswordValid = await bcrypt.compare(
+            password,
+            user.withdrawalPassword
+          );
+        } else {
+          // legacy plain password fallback (temporary safety)
+          isPasswordValid = password === user.withdrawalPassword;
+        }
+      }
+    } catch (err) {
+      console.log("❌ PASSWORD CHECK ERROR:", err);
+      return res.status(500).json({
+        message: "Password verification failed",
+      });
+    }
 
     if (!isPasswordValid) {
       return res.status(400).json({
@@ -224,7 +244,7 @@ exports.createWithdrawal = async (req, res) => {
     }
 
     // =========================
-    // 6. 24 HOURS LIMIT CHECK
+    // 6. 24 HOURS RULE
     // =========================
     const lastWithdrawal = await Withdrawal.findOne({
       userId,
@@ -260,7 +280,7 @@ exports.createWithdrawal = async (req, res) => {
     }
 
     // =========================
-    // 8. CALCULATION
+    // 8. CALCULATIONS
     // =========================
     const fee = amount * 0.05;
     const receiveAmount = amount - fee;
@@ -270,7 +290,7 @@ exports.createWithdrawal = async (req, res) => {
     await user.save();
 
     // =========================
-    // 9. CREATE WITHDRAWAL
+    // 9. CREATE WITHDRAWAL (SECURE)
     // =========================
     const withdrawal = await Withdrawal.create({
       userId,
@@ -287,6 +307,8 @@ exports.createWithdrawal = async (req, res) => {
       withdrawal,
     });
   } catch (err) {
+    console.log("🔥 WITHDRAW ERROR:", err);
+
     res.status(500).json({
       message: "Server error",
       error: err.message,
