@@ -8,13 +8,36 @@ exports.getProfile = async (req, res) => {
 
 // ================= BIND WALLET =================
 exports.bindWallet = async (req, res) => {
-  const { walletAddress } = req.body;
+  try {
+    const { walletAddress, network } = req.body;
 
-  await User.findByIdAndUpdate(req.user.id, {
-    walletAddress
-  });
+    if (!walletAddress) {
+      return res.status(400).json({ message: "Wallet address is required" });
+    }
 
-  res.json({ message: "Wallet updated" });
+    const allowedNetworks = ["USDT-TRC20", "USDT-TON", "USDT-BEP20"];
+
+    if (!network || !allowedNetworks.includes(network)) {
+      return res.status(400).json({ message: "Invalid network selected" });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      {
+        walletAddress,
+        network
+      },
+      { new: true }
+    );
+
+    res.json({
+      message: "Wallet updated successfully",
+      walletAddress: updatedUser.walletAddress,
+      network: updatedUser.network
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
 };
 
 // ================= WITHDRAWAL PASSWORD =================
