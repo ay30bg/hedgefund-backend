@@ -24,7 +24,7 @@ const userSchema = new mongoose.Schema(
 
     avatar: {
       type: String,
-      default: "https://i.pravatar.cc/100"
+      default: ""
     },
 
     referralCode: {
