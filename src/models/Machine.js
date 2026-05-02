@@ -1,35 +1,34 @@
-const mongoose = require("mongoose");
+ const mongoose = require("mongoose");
 
-const userMachineSchema = new mongoose.Schema(
+ const machineSchema = new mongoose.Schema(
   {
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-    },
+    name: {
+      type: String,
+       required: true,
+       unique: true
+     },
 
-    machine: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Machine",
-    },
+     price: {
+      type: Number,
+      required: true
+     },
 
-    name: String,
-    profit: Number,
-    duration: Number,
+     profit: {
+       type: Number,
+       required: true
+     },
 
-    purchaseDate: Date,
-    expiryDate: Date,
+      duration: {
+       type: Number,
+       required: true
+     },
 
-    claimed: {
-      type: Boolean,
-      default: false,
-    },
-
-    claimedAt: {
-      type: Date,
-      default: null,
-    },
-  },
-  { timestamps: true }
+     img: {
+     type: String, // store image path or URL
+      required: true
+    }
+   },
+   { timestamps: true }
 );
 
-module.exports = mongoose.model("UserMachine", userMachineSchema);
+module.exports = mongoose.model("Machine", machineSchema);
