@@ -1,34 +1,70 @@
+// const mongoose = require("mongoose");
+
+// const machineSchema = new mongoose.Schema(
+//   {
+//     name: {
+//       type: String,
+//       required: true,
+//       unique: true
+//     },
+
+//     price: {
+//       type: Number,
+//       required: true
+//     },
+
+//     profit: {
+//       type: Number,
+//       required: true
+//     },
+
+//     duration: {
+//       type: Number,
+//       required: true
+//     },
+
+//     img: {
+//       type: String, // store image path or URL
+//       required: true
+//     }
+//   },
+//   { timestamps: true }
+// );
+
+// module.exports = mongoose.model("Machine", machineSchema);
+
 const mongoose = require("mongoose");
 
-const machineSchema = new mongoose.Schema(
+const userMachineSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      required: true,
-      unique: true
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
     },
 
-    price: {
-      type: Number,
-      required: true
+    machine: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Machine",
     },
 
-    profit: {
-      type: Number,
-      required: true
+    name: String,
+    profit: Number,
+    duration: Number,
+
+    purchaseDate: Date,
+    expiryDate: Date,
+
+    claimed: {
+      type: Boolean,
+      default: false,
     },
 
-    duration: {
-      type: Number,
-      required: true
+    claimedAt: {
+      type: Date,
+      default: null,
     },
-
-    img: {
-      type: String, // store image path or URL
-      required: true
-    }
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Machine", machineSchema);
+module.exports = mongoose.model("UserMachine", userMachineSchema);
