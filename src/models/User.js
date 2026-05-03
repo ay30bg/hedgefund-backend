@@ -83,6 +83,17 @@ const userSchema = new mongoose.Schema(
       }
     }
   },
+
+   // ================= OTP VERIFICATION (NEW) =================
+    isVerified: {
+      type: Boolean,
+      default: false
+    },
+
+    otp: String,
+
+    otpExpire: Date
+  },
   { timestamps: true }
 );
 
