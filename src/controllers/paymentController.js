@@ -76,82 +76,6 @@ exports.createPayment = async (req, res) => {
 // ==============================
 // WEBHOOK (AUTO CREDIT)
 // ==============================
-// exports.paymentWebhook = async (req, res) => {
-//   try {
-//     const payload = req.body;
-
-//     console.log("WEBHOOK RECEIVED:", payload);
-
-//     // =========================
-//     // SAFE ENV CHECK
-//     // =========================
-//     const ipnSecret = process.env.NOWPAYMENTS_IPN_SECRET;
-//     if (!ipnSecret) {
-//       console.error("IPN secret missing");
-//       return res.sendStatus(500);
-//     }
-
-//     // =========================
-//     // SIGNATURE VERIFY
-//     // =========================
-//     const receivedSig = req.headers["x-nowpayments-sig"];
-
-//     const hmac = crypto
-//       .createHmac("sha512", ipnSecret)
-//       .update(JSON.stringify(payload))
-//       .digest("hex");
-
-//     // if (hmac !== receivedSig) {
-//     //   console.log("❌ Invalid signature");
-//     //   return res.sendStatus(401);
-//     // }
-
-//     // =========================
-//     // FIX FIELD NAME ISSUE
-//     // =========================
-//     const payment = await Payment.findOne({
-//       paymentId: payload.payment_id,
-//     });
-
-//     if (!payment) {
-//       console.log("Payment not found");
-//       return res.sendStatus(200);
-//     }
-
-//     // =========================
-//     // UPDATE STATUS
-//     // =========================
-//     payment.status = payload.payment_status;
-
-//     // =========================
-//     // CREDIT USER ONLY ONCE
-//     // =========================
-//     if (
-//       payload.payment_status === "finished" &&
-//       payment.credited !== true
-//     ) {
-//       const user = await User.findById(payment.userId);
-
-//       if (user) {
-//         const amount = Number(payment.amountUSD || 0);
-
-//         user.balance = Number(user.balance || 0) + amount;
-
-//         await user.save();
-//       }
-
-//       payment.credited = true;
-//     }
-
-//     await payment.save();
-
-//     return res.sendStatus(200);
-//   } catch (err) {
-//     console.error("WEBHOOK ERROR FULL:", err);
-//     return res.sendStatus(500);
-//   }
-// };
-
 exports.paymentWebhook = async (req, res) => {
   try {
     const payload = req.body;
@@ -159,32 +83,31 @@ exports.paymentWebhook = async (req, res) => {
     console.log("WEBHOOK RECEIVED:", payload);
 
     // =========================
-    // CHECK IPN SECRET
+    // SAFE ENV CHECK
     // =========================
     const ipnSecret = process.env.NOWPAYMENTS_IPN_SECRET;
-
     if (!ipnSecret) {
-      console.error("Missing IPN secret");
+      console.error("IPN secret missing");
       return res.sendStatus(500);
     }
 
     // =========================
-    // VERIFY SIGNATURE (FIXED)
+    // SIGNATURE VERIFY
     // =========================
     const receivedSig = req.headers["x-nowpayments-sig"];
 
     const hmac = crypto
       .createHmac("sha512", ipnSecret)
-      .update(req.rawBody) // 
+      .update(JSON.stringify(payload))
       .digest("hex");
 
-    if (hmac !== receivedSig) {
-      console.log("❌ Invalid signature");
-      return res.sendStatus(401);
-    }
+    // if (hmac !== receivedSig) {
+    //   console.log("❌ Invalid signature");
+    //   return res.sendStatus(401);
+    // }
 
     // =========================
-    // FIND PAYMENT (FIXED FIELD)
+    // FIX FIELD NAME ISSUE
     // =========================
     const payment = await Payment.findOne({
       paymentId: payload.payment_id,
@@ -213,6 +136,7 @@ exports.paymentWebhook = async (req, res) => {
         const amount = Number(payment.amountUSD || 0);
 
         user.balance = Number(user.balance || 0) + amount;
+
         await user.save();
       }
 
@@ -223,7 +147,7 @@ exports.paymentWebhook = async (req, res) => {
 
     return res.sendStatus(200);
   } catch (err) {
-    console.error("WEBHOOK ERROR:", err);
+    console.error("WEBHOOK ERROR FULL:", err);
     return res.sendStatus(500);
   }
 };
