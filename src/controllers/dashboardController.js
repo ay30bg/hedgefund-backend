@@ -307,3 +307,46 @@ exports.getPortfolio = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+exports.getEarningsOverview = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const investments = await Investment.find({ user: userId });
+    const machines = await Market.find({ userId });
+
+    const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+    const dataMap = days.map((d) => ({
+      day: d,
+      profit: 0,
+    }));
+
+    // ================= INVESTMENT EARNINGS =================
+    investments.forEach((inv) => {
+      const date = new Date(inv.createdAt);
+      const day = days[date.getDay() === 0 ? 6 : date.getDay() - 1];
+
+      const index = dataMap.findIndex((d) => d.day === day);
+      if (index !== -1) {
+        dataMap[index].profit += inv.expectedIncome || 0;
+      }
+    });
+
+    // ================= MACHINE EARNINGS =================
+    machines.forEach((m) => {
+      const date = new Date(m.purchaseDate);
+      const day = days[date.getDay() === 0 ? 6 : date.getDay() - 1];
+
+      const index = dataMap.findIndex((d) => d.day === day);
+      if (index !== -1) {
+        dataMap[index].profit += (m.profit || 0) * 24;
+      }
+    });
+
+    res.json({ earnings: dataMap });
+  } catch (err) {
+    console.error("Earnings Error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
