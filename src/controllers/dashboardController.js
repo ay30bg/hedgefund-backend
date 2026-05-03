@@ -155,10 +155,9 @@
 
 
 const mongoose = require("mongoose");
-
 const Market = require("../models/Market");
 const Investment = require("../models/Investment");
-const Withdrawal = require("../models/Withdrawal");
+const Withdrawal = require("../models/Withdraw");
 
 exports.getPortfolio = async (req, res) => {
   try {
