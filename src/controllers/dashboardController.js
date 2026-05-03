@@ -40,10 +40,14 @@ exports.getPortfolio = async (req, res) => {
       0
     );
 
-    const machineProfit = userMachines.reduce(
-      (sum, m) => sum + (m.profit || 0) * 24,
-      0
-    );
+    const machineProfit = userMachines.reduce((sum, m) => {
+  const hourlyProfit = m.profit || 0;
+  const dailyProfit = hourlyProfit * 24;
+  const totalIncome = dailyProfit * 21;
+  const netProfit = totalIncome - (m.price || 0);
+
+  return sum + netProfit;
+}, 0);
 
     const totalProfit = investmentProfit + machineProfit;
 
