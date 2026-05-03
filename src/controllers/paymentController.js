@@ -76,47 +76,117 @@ exports.createPayment = async (req, res) => {
 // ==============================
 // WEBHOOK (AUTO CREDIT)
 // ==============================
+// exports.paymentWebhook = async (req, res) => {
+//   try {
+//     const payload = req.body;
+
+//     console.log("WEBHOOK RECEIVED:", payload);
+
+//     // =========================
+//     // SAFE ENV CHECK
+//     // =========================
+//     const ipnSecret = process.env.NOWPAYMENTS_IPN_SECRET;
+//     if (!ipnSecret) {
+//       console.error("IPN secret missing");
+//       return res.sendStatus(500);
+//     }
+
+//     // =========================
+//     // SIGNATURE VERIFY
+//     // =========================
+//     const receivedSig = req.headers["x-nowpayments-sig"];
+
+//     const hmac = crypto
+//       .createHmac("sha512", ipnSecret)
+//       .update(JSON.stringify(payload))
+//       .digest("hex");
+
+//     // if (hmac !== receivedSig) {
+//     //   console.log("❌ Invalid signature");
+//     //   return res.sendStatus(401);
+//     // }
+
+//     // =========================
+//     // FIX FIELD NAME ISSUE
+//     // =========================
+//     const payment = await Payment.findOne({
+//       paymentId: payload.payment_id,
+//     });
+
+//     if (!payment) {
+//       console.log("Payment not found");
+//       return res.sendStatus(200);
+//     }
+
 exports.paymentWebhook = async (req, res) => {
   try {
     const payload = req.body;
 
     console.log("WEBHOOK RECEIVED:", payload);
 
-    // =========================
-    // SAFE ENV CHECK
-    // =========================
     const ipnSecret = process.env.NOWPAYMENTS_IPN_SECRET;
+
     if (!ipnSecret) {
       console.error("IPN secret missing");
       return res.sendStatus(500);
     }
 
-    // =========================
-    // SIGNATURE VERIFY
-    // =========================
     const receivedSig = req.headers["x-nowpayments-sig"];
 
+    // MUST use raw body (see route fix below)
     const hmac = crypto
       .createHmac("sha512", ipnSecret)
-      .update(JSON.stringify(payload))
+      .update(req.rawBody)
       .digest("hex");
 
-    // if (hmac !== receivedSig) {
-    //   console.log("❌ Invalid signature");
-    //   return res.sendStatus(401);
-    // }
+    // SECURITY CHECK
+    if (hmac !== receivedSig) {
+      console.log("❌ Invalid signature");
+      return res.sendStatus(401);
+    }
 
-    // =========================
-    // FIX FIELD NAME ISSUE
-    // =========================
+    // VALIDATION
+    if (!payload?.payment_id || !payload?.payment_status) {
+      console.log("Invalid payload");
+      return res.sendStatus(400);
+    }
+
     const payment = await Payment.findOne({
       paymentId: payload.payment_id,
     });
 
-    if (!payment) {
-      console.log("Payment not found");
-      return res.sendStatus(200);
+    if (!payment) return res.sendStatus(200);
+
+    // UPDATE STATUS
+    payment.status = payload.payment_status;
+
+    // CREDIT LOGIC (SAFE)
+    if (
+      payload.payment_status === "finished" &&
+      !payment.credited
+    ) {
+      const user = await User.findById(payment.userId);
+
+      if (user) {
+        const amount = Number(payment.amountUSD || 0);
+
+        user.balance = Number(user.balance || 0) + amount;
+
+        await user.save();
+      }
+
+      payment.credited = true;
     }
+
+    await payment.save();
+
+    return res.sendStatus(200);
+
+  } catch (err) {
+    console.error("WEBHOOK ERROR:", err);
+    return res.sendStatus(500);
+  }
+};
 
     // =========================
     // UPDATE STATUS
