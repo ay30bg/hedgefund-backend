@@ -16,21 +16,11 @@ router.get("/my", protect, getMyPayments);
 router.get("/status/:id", protect, getPaymentStatus);
 
 // // NOWPAYMENTS WEBHOOK (NO AUTH)
-// router.post(
-//   "/webhook",
-//   express.json({ type: "*/*" }),
-//   paymentWebhook
-// );
-
-// WEBHOOK (NO AUTH)
 router.post(
   "/webhook",
-  express.json({
-    verify: (req, res, buf) => {
-      req.rawBody = buf.toString(); 
-    },
-  }),
+  express.json({ type: "*/*" }),
   paymentWebhook
 );
+
 
 module.exports = router;
