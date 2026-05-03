@@ -18,11 +18,8 @@ router.get("/status/:id", protect, getPaymentStatus);
 // // NOWPAYMENTS WEBHOOK (NO AUTH)
 router.post(
   "/webhook",
-  express.json({ type: "*/*" }),
+  express.raw({ type: "*/*" }), // MUST be raw
   paymentWebhook
 );
-
-
-
 
 module.exports = router;
