@@ -118,12 +118,18 @@ exports.createPayment = async (req, res) => {
 //       return res.sendStatus(200);
 //     }
 
+// ==============================
+// WEBHOOK (AUTO CREDIT)
+// ==============================
 exports.paymentWebhook = async (req, res) => {
   try {
     const payload = req.body;
 
     console.log("WEBHOOK RECEIVED:", payload);
 
+    // =========================
+    // CHECK ENV
+    // =========================
     const ipnSecret = process.env.NOWPAYMENTS_IPN_SECRET;
 
     if (!ipnSecret) {
@@ -131,70 +137,48 @@ exports.paymentWebhook = async (req, res) => {
       return res.sendStatus(500);
     }
 
+    // =========================
+    // VERIFY SIGNATURE
+    // =========================
     const receivedSig = req.headers["x-nowpayments-sig"];
 
-    // MUST use raw body (see route fix below)
     const hmac = crypto
       .createHmac("sha512", ipnSecret)
       .update(req.rawBody)
       .digest("hex");
 
-    // SECURITY CHECK
     if (hmac !== receivedSig) {
       console.log("❌ Invalid signature");
       return res.sendStatus(401);
     }
 
-    // VALIDATION
+    // =========================
+    // VALIDATE PAYLOAD
+    // =========================
     if (!payload?.payment_id || !payload?.payment_status) {
       console.log("Invalid payload");
       return res.sendStatus(400);
     }
 
+    // =========================
+    // FIND PAYMENT
+    // =========================
     const payment = await Payment.findOne({
       paymentId: payload.payment_id,
     });
 
-    if (!payment) return res.sendStatus(200);
-
-    // UPDATE STATUS
-    payment.status = payload.payment_status;
-
-    // CREDIT LOGIC (SAFE)
-    if (
-      payload.payment_status === "finished" &&
-      !payment.credited
-    ) {
-      const user = await User.findById(payment.userId);
-
-      if (user) {
-        const amount = Number(payment.amountUSD || 0);
-
-        user.balance = Number(user.balance || 0) + amount;
-
-        await user.save();
-      }
-
-      payment.credited = true;
+    if (!payment) {
+      console.log("Payment not found");
+      return res.sendStatus(200);
     }
 
-    await payment.save();
-
-    return res.sendStatus(200);
-
-  } catch (err) {
-    console.error("WEBHOOK ERROR:", err);
-    return res.sendStatus(500);
-  }
-};
-
     // =========================
     // UPDATE STATUS
     // =========================
     payment.status = payload.payment_status;
 
     // =========================
-    // CREDIT USER ONLY ONCE
+    // CREDIT USER (ONCE ONLY)
     // =========================
     if (
       payload.payment_status === "finished" &&
@@ -216,8 +200,9 @@ exports.paymentWebhook = async (req, res) => {
     await payment.save();
 
     return res.sendStatus(200);
+
   } catch (err) {
-    console.error("WEBHOOK ERROR FULL:", err);
+    console.error("🔥 WEBHOOK ERROR:", err);
     return res.sendStatus(500);
   }
 };
