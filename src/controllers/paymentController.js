@@ -78,46 +78,127 @@ exports.createPayment = async (req, res) => {
 // ==============================
 exports.paymentWebhook = async (req, res) => {
   try {
-    const payload = req.body;
+    // =========================
+    // 1. RAW BODY (CRITICAL)
+    // =========================
+    const rawBody = req.body.toString();
 
-    console.log("WEBHOOK RECEIVED:", payload);
+    let payload;
+    try {
+      payload = JSON.parse(rawBody);
+    } catch (err) {
+      console.log("❌ Invalid JSON");
+      return res.sendStatus(400);
+    }
+
+    console.log("📩 Webhook received:", payload);
 
     // =========================
-    // SAFE ENV CHECK
+    // 2. ENV CHECK
     // =========================
     const ipnSecret = process.env.NOWPAYMENTS_IPN_SECRET;
     if (!ipnSecret) {
-      console.error("IPN secret missing");
+      console.error("❌ Missing IPN secret");
       return res.sendStatus(500);
     }
 
     // =========================
-    // SIGNATURE VERIFY
+    // 3. VERIFY SIGNATURE
     // =========================
     const receivedSig = req.headers["x-nowpayments-sig"];
 
-    const hmac = crypto
+    const expectedSig = crypto
       .createHmac("sha512", ipnSecret)
-      .update(JSON.stringify(payload))
+      .update(rawBody)
       .digest("hex");
 
-    // if (hmac !== receivedSig) {
-    //   console.log("❌ Invalid signature");
-    //   return res.sendStatus(401);
-    // }
+    if (!receivedSig || expectedSig !== receivedSig) {
+      console.log("❌ Invalid signature");
+      return res.sendStatus(401);
+    }
 
     // =========================
-    // FIX FIELD NAME ISSUE
+    // 4. VALIDATE STATUS
     // =========================
-    const payment = await Payment.findOne({
-      paymentId: payload.payment_id,
-    });
+    const validStatuses = [
+      "waiting",
+      "confirming",
+      "confirmed",
+      "sending",
+      "finished",
+      "failed",
+      "expired",
+    ];
 
-    if (!payment) {
-      console.log("Payment not found");
+    if (!validStatuses.includes(payload.payment_status)) {
+      console.log("❌ Invalid status:", payload.payment_status);
+      return res.sendStatus(400);
+    }
+
+    // =========================
+    // 5. ATOMIC PAYMENT UPDATE
+    // =========================
+    const updatedPayment = await Payment.findOneAndUpdate(
+      {
+        paymentId: payload.payment_id,
+      },
+      {
+        $set: {
+          status: payload.payment_status,
+        },
+      },
+      { new: true }
+    );
+
+    if (!updatedPayment) {
+      console.log("⚠️ Payment not found:", payload.payment_id);
       return res.sendStatus(200);
     }
 
+    // =========================
+    // 6. CREDIT USER (ONCE ONLY)
+    // =========================
+    if (payload.payment_status === "finished") {
+      const creditedPayment = await Payment.findOneAndUpdate(
+        {
+          paymentId: payload.payment_id,
+          credited: false, // ONLY if not already credited
+        },
+        {
+          $set: { credited: true },
+        },
+        { new: true }
+      );
+
+      // Only one process will pass this
+      if (creditedPayment) {
+        await User.findByIdAndUpdate(creditedPayment.userId, {
+          $inc: { balance: creditedPayment.amountUSD },
+        });
+
+        console.log(
+          `✅ Credited user ${creditedPayment.userId} with $${creditedPayment.amountUSD}`
+        );
+      } else {
+        console.log("⚠️ Already credited (duplicate webhook)");
+      }
+    }
+
+    // =========================
+    // 7. OPTIONAL EXTRA LOGGING
+    // =========================
+    console.log({
+      payment_id: payload.payment_id,
+      status: payload.payment_status,
+      price_amount: payload.price_amount,
+    });
+
+    return res.sendStatus(200);
+  } catch (err) {
+    console.error("🔥 WEBHOOK ERROR:", err.message);
+    return res.sendStatus(500);
+  }
+};
 
 // ==============================
 // GET USER PAYMENTS
