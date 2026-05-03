@@ -76,51 +76,6 @@ exports.createPayment = async (req, res) => {
 // ==============================
 // WEBHOOK (AUTO CREDIT)
 // ==============================
-// exports.paymentWebhook = async (req, res) => {
-//   try {
-//     const payload = req.body;
-
-//     console.log("WEBHOOK RECEIVED:", payload);
-
-//     // =========================
-//     // SAFE ENV CHECK
-//     // =========================
-//     const ipnSecret = process.env.NOWPAYMENTS_IPN_SECRET;
-//     if (!ipnSecret) {
-//       console.error("IPN secret missing");
-//       return res.sendStatus(500);
-//     }
-
-//     // =========================
-//     // SIGNATURE VERIFY
-//     // =========================
-//     const receivedSig = req.headers["x-nowpayments-sig"];
-
-//     const hmac = crypto
-//       .createHmac("sha512", ipnSecret)
-//       .update(JSON.stringify(payload))
-//       .digest("hex");
-
-//     // if (hmac !== receivedSig) {
-//     //   console.log("❌ Invalid signature");
-//     //   return res.sendStatus(401);
-//     // }
-
-//     // =========================
-//     // FIX FIELD NAME ISSUE
-//     // =========================
-//     const payment = await Payment.findOne({
-//       paymentId: payload.payment_id,
-//     });
-
-//     if (!payment) {
-//       console.log("Payment not found");
-//       return res.sendStatus(200);
-//     }
-
-// ==============================
-// WEBHOOK (AUTO CREDIT)
-// ==============================
 exports.paymentWebhook = async (req, res) => {
   try {
     const payload = req.body;
@@ -128,40 +83,31 @@ exports.paymentWebhook = async (req, res) => {
     console.log("WEBHOOK RECEIVED:", payload);
 
     // =========================
-    // CHECK ENV
+    // SAFE ENV CHECK
     // =========================
     const ipnSecret = process.env.NOWPAYMENTS_IPN_SECRET;
-
     if (!ipnSecret) {
       console.error("IPN secret missing");
       return res.sendStatus(500);
     }
 
     // =========================
-    // VERIFY SIGNATURE
+    // SIGNATURE VERIFY
     // =========================
     const receivedSig = req.headers["x-nowpayments-sig"];
 
     const hmac = crypto
       .createHmac("sha512", ipnSecret)
-      .update(req.rawBody)
+      .update(JSON.stringify(payload))
       .digest("hex");
 
-    if (hmac !== receivedSig) {
-      console.log("❌ Invalid signature");
-      return res.sendStatus(401);
-    }
+    // if (hmac !== receivedSig) {
+    //   console.log("❌ Invalid signature");
+    //   return res.sendStatus(401);
+    // }
 
     // =========================
-    // VALIDATE PAYLOAD
-    // =========================
-    if (!payload?.payment_id || !payload?.payment_status) {
-      console.log("Invalid payload");
-      return res.sendStatus(400);
-    }
-
-    // =========================
-    // FIND PAYMENT
+    // FIX FIELD NAME ISSUE
     // =========================
     const payment = await Payment.findOne({
       paymentId: payload.payment_id,
@@ -172,40 +118,6 @@ exports.paymentWebhook = async (req, res) => {
       return res.sendStatus(200);
     }
 
-    // =========================
-    // UPDATE STATUS
-    // =========================
-    payment.status = payload.payment_status;
-
-    // =========================
-    // CREDIT USER (ONCE ONLY)
-    // =========================
-    if (
-      payload.payment_status === "finished" &&
-      payment.credited !== true
-    ) {
-      const user = await User.findById(payment.userId);
-
-      if (user) {
-        const amount = Number(payment.amountUSD || 0);
-
-        user.balance = Number(user.balance || 0) + amount;
-
-        await user.save();
-      }
-
-      payment.credited = true;
-    }
-
-    await payment.save();
-
-    return res.sendStatus(200);
-
-  } catch (err) {
-    console.error("🔥 WEBHOOK ERROR:", err);
-    return res.sendStatus(500);
-  }
-};
 
 // ==============================
 // GET USER PAYMENTS
