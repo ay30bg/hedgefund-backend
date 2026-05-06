@@ -7,19 +7,36 @@ const {
   updateWithdrawalStatus,
 } = require("../controllers/adminTransactionController");
 
-// ============================
-// GET ALL TRANSACTIONS
-// ============================
-router.get("/", getAllTransactions);
+const { protect, adminOnly } = require("../middleware/authMiddleware");
 
-// ============================
-// UPDATE PAYMENT STATUS
-// ============================
-router.patch("/deposit/:id", updatePaymentStatus);
+// ======================================
+// GET ALL TRANSACTIONS (ADMIN ONLY)
+// ======================================
+router.get(
+  "/",
+  protect,
+  adminOnly,
+  getAllTransactions
+);
 
-// ============================
+// ======================================
+// UPDATE DEPOSIT (PAYMENT) STATUS
+// ======================================
+router.patch(
+  "/deposit/:id",
+  protect,
+  adminOnly,
+  updatePaymentStatus
+);
+
+// ======================================
 // UPDATE WITHDRAWAL STATUS
-// ============================
-router.patch("/withdrawal/:id", updateWithdrawalStatus);
+// ======================================
+router.patch(
+  "/withdrawal/:id",
+  protect,
+  adminOnly,
+  updateWithdrawalStatus
+);
 
 module.exports = router;
