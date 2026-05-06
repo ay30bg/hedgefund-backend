@@ -17,6 +17,7 @@ const paymentRoutes = require("./routes/paymentRoutes");
 const withdrawRoutes = require("./routes/withdrawRoutes");
 const transactionsRoutes = require("./routes/transactionsRoutes");
 const adminAuthRoutes = require("./routes/adminAuthRoutes");
+const adminTransactionRoutes = require("./routes/adminTransactionRoutes");
 
 // Seeders
 const seedMachinesIfEmpty = require("./seed/machineSeed");
@@ -82,6 +83,7 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/withdraw", withdrawRoutes);
 app.use("/api/transactions", transactionsRoutes);
 app.use("/api/admin", adminAuthRoutes);
+app.use("/api/admin/transactions", adminTransactionRoutes);
 
 // ================= 404 HANDLER =================
 app.use((req, res) => {
