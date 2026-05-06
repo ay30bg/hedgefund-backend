@@ -81,7 +81,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/withdraw", withdrawRoutes);
 app.use("/api/transactions", transactionsRoutes);
-app.use("/api/admin/auth", adminAuthRoutes);
+app.use("/api/admin", adminAuthRoutes);
 
 // ================= 404 HANDLER =================
 app.use((req, res) => {
