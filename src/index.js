@@ -16,6 +16,7 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const withdrawRoutes = require("./routes/withdrawRoutes");
 const transactionsRoutes = require("./routes/transactionsRoutes");
+const adminAuthRoutes = require("./routes/adminAuthRoutes");
 
 // Seeders
 const seedMachinesIfEmpty = require("./seed/machineSeed");
@@ -31,6 +32,7 @@ app.set("trust proxy", 1);
 const allowedOrigins = [
   "http://localhost:3000",
   "https://hedgefund-power.vercel.app",
+  "https://admin-hedgefund.vercel.app",
 ];
 
 app.use(
@@ -79,6 +81,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/withdraw", withdrawRoutes);
 app.use("/api/transactions", transactionsRoutes);
+app.use("/api/admin/auth", adminAuthRoutes);
 
 // ================= 404 HANDLER =================
 app.use((req, res) => {
