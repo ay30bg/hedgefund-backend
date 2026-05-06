@@ -132,21 +132,6 @@ const Withdrawal = require("../models/Withdraw");
 const User = require("../models/User");
 
 // =======================================
-// NORMALIZE STATUS
-// =======================================
-const normalizeStatus = (status) => {
-  if (!status) return "pending";
-
-  const s = status.toLowerCase();
-
-  if (["pending", "waiting", "confirming"].includes(s)) return "pending";
-  if (["approved", "confirmed", "finished"].includes(s)) return "approved";
-  if (["failed", "expired", "rejected"].includes(s)) return "rejected";
-
-  return "pending";
-};
-
-// =======================================
 // GET ALL TRANSACTIONS
 // =======================================
 const getAllTransactions = async (req, res) => {
@@ -165,7 +150,11 @@ const getAllTransactions = async (req, res) => {
       userEmail: p.userId?.email || "Unknown",
       amount: p.amountUSD,
       type: "deposit",
-      status: normalizeStatus(p.status),
+
+      // ADMIN VIEW STATUS (IMPORTANT)
+      status: p.appStatus,
+
+      gatewayStatus: p.status,
       credited: p.credited,
       date: p.createdAt,
     }));
@@ -176,18 +165,23 @@ const getAllTransactions = async (req, res) => {
       userEmail: w.userId?.email || "Unknown",
       amount: w.amount,
       type: "withdrawal",
-      status: normalizeStatus(w.status),
+      status: w.status,
       date: w.createdAt,
     }));
 
-    res.json([...deposits, ...withdraws]);
+    const all = [...deposits, ...withdraws].sort(
+      (a, b) => new Date(b.date) - new Date(a.date)
+    );
+
+    res.json(all);
   } catch (err) {
+    console.error("GET TX ERROR:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
 
 // =======================================
-// ADMIN ONLY: UPDATE PAYMENT + CREDIT
+// UPDATE PAYMENT STATUS (ADMIN ONLY)
 // =======================================
 const updatePaymentStatus = async (req, res) => {
   try {
@@ -200,43 +194,49 @@ const updatePaymentStatus = async (req, res) => {
       return res.status(404).json({ message: "Payment not found" });
     }
 
-    const newStatus = normalizeStatus(status);
-    payment.status = newStatus;
+    // ===================================
+    // UPDATE ADMIN STATUS ONLY
+    // ===================================
+    payment.appStatus = status;
 
-    // =============================
-    // SAFE CREDIT LOGIC
-    // =============================
-    if (newStatus === "approved" && !payment.credited) {
-      if (!payment.userId) {
-        return res.status(400).json({ message: "Missing userId" });
-      }
-
+    // ===================================
+    // CREDIT WALLET (ONLY ONCE)
+    // ===================================
+    if (status === "approved" && !payment.credited) {
+      const userId = payment.userId;
       const amount = Number(payment.amountUSD || 0);
 
-      if (amount <= 0) {
-        return res.status(400).json({ message: "Invalid amount" });
+      if (!userId || amount <= 0) {
+        return res.status(400).json({
+          message: "Invalid payment data",
+        });
       }
 
-      await User.findByIdAndUpdate(payment.userId, {
+      await User.findByIdAndUpdate(userId, {
         $inc: { balance: amount },
       });
 
       payment.credited = true;
+
+      console.log(
+        `💰 ADMIN CREDIT: $${amount} → User ${userId}`
+      );
     }
 
     await payment.save();
 
     res.json({
-      message: "Payment updated",
+      message: "Payment updated successfully",
       data: payment,
     });
   } catch (err) {
-    console.error("UPDATE PAYMENT ERROR:", err); // 🔥 IMPORTANT
+    console.error("UPDATE PAYMENT ERROR:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 // =======================================
-// UPDATE WITHDRAWAL
+// UPDATE WITHDRAWAL STATUS
 // =======================================
 const updateWithdrawalStatus = async (req, res) => {
   try {
@@ -246,17 +246,22 @@ const updateWithdrawalStatus = async (req, res) => {
     const withdrawal = await Withdrawal.findByIdAndUpdate(
       id,
       {
-        status: normalizeStatus(status),
+        status,
         processedAt: new Date(),
       },
       { new: true }
     );
+
+    if (!withdrawal) {
+      return res.status(404).json({ message: "Withdrawal not found" });
+    }
 
     res.json({
       message: "Withdrawal updated",
       data: withdrawal,
     });
   } catch (err) {
+    console.error("WITHDRAW ERROR:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
