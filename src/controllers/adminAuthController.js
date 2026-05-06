@@ -54,40 +54,28 @@ exports.adminLogin = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    if (!email || !password) {
-      return res.status(400).json({
-        message: "Email and password are required",
-      });
+    if (
+      email !== process.env.ADMIN_EMAIL ||
+      password !== process.env.ADMIN_PASSWORD
+    ) {
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    const adminEmail = process.env.ADMIN_EMAIL;
-    const adminPassword = process.env.ADMIN_PASSWORD;
+    const token = jwt.sign(
+      {
+        email,
+        role: "admin",
+        id: "admin", // ONLY FOR CONSISTENCY, NOT DB USAGE
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
 
-    if (email !== adminEmail || password !== adminPassword) {
-      return res.status(401).json({
-        message: "Invalid credentials",
-      });
-    }
-
-    // 🔥 FIXED PAYLOAD (IMPORTANT)
-    const payload = {
-      id: "admin",           // fixed stable ID
-      email,
-      role: "admin",
-    };
-
-    const token = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRES_IN || "7d",
-    });
-
-    return res.status(200).json({
-      success: true,
+    res.json({
       token,
-      user: payload,
+      user: { email, role: "admin" },
     });
-
   } catch (err) {
-    console.error("Admin login error:", err);
-    return res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error" });
   }
 };
