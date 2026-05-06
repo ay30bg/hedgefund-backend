@@ -203,12 +203,22 @@ const updatePaymentStatus = async (req, res) => {
     const newStatus = normalizeStatus(status);
     payment.status = newStatus;
 
-    // ===================================
-    // CREDIT ONLY FROM ADMIN ACTION
-    // ===================================
+    // =============================
+    // SAFE CREDIT LOGIC
+    // =============================
     if (newStatus === "approved" && !payment.credited) {
+      if (!payment.userId) {
+        return res.status(400).json({ message: "Missing userId" });
+      }
+
+      const amount = Number(payment.amountUSD || 0);
+
+      if (amount <= 0) {
+        return res.status(400).json({ message: "Invalid amount" });
+      }
+
       await User.findByIdAndUpdate(payment.userId, {
-        $inc: { balance: payment.amountUSD },
+        $inc: { balance: amount },
       });
 
       payment.credited = true;
@@ -221,10 +231,10 @@ const updatePaymentStatus = async (req, res) => {
       data: payment,
     });
   } catch (err) {
+    console.error("UPDATE PAYMENT ERROR:", err); // 🔥 IMPORTANT
     res.status(500).json({ message: "Server error" });
   }
 };
-
 // =======================================
 // UPDATE WITHDRAWAL
 // =======================================
