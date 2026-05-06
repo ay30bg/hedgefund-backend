@@ -2,7 +2,22 @@ const Payment = require("../models/Payment");
 const Withdrawal = require("../models/Withdraw");
 
 // =======================================
-// GET ALL ADMIN TRANSACTIONS (MERGED)
+// NORMALIZE STATUS (IMPORTANT)
+// =======================================
+const normalizeStatus = (status) => {
+  if (!status) return "pending";
+
+  const s = status.toLowerCase();
+
+  if (["waiting", "confirming"].includes(s)) return "pending";
+  if (["confirmed", "finished", "approved"].includes(s)) return "approved";
+  if (["failed", "expired", "rejected"].includes(s)) return "rejected";
+
+  return "pending";
+};
+
+// =======================================
+// GET ALL ADMIN TRANSACTIONS
 // =======================================
 const getAllTransactions = async (req, res) => {
   try {
@@ -14,25 +29,25 @@ const getAllTransactions = async (req, res) => {
       .populate("userId", "email")
       .sort({ createdAt: -1 });
 
-    // Normalize PAYMENTS
+    // DEPOSITS
     const depositTx = payments.map((p) => ({
       _id: p._id,
       reference: p.paymentId,
       userEmail: p.userId?.email || "Unknown",
       amount: p.amountUSD,
       type: "deposit",
-      status: p.status, // waiting, confirmed, failed...
+      status: normalizeStatus(p.status),
       date: p.createdAt,
     }));
 
-    // Normalize WITHDRAWALS
+    // WITHDRAWALS
     const withdrawalTx = withdrawals.map((w) => ({
       _id: w._id,
       reference: `WD-${w._id.toString().slice(-6)}`,
       userEmail: w.userId?.email || "Unknown",
       amount: w.amount,
       type: "withdrawal",
-      status: w.status.toLowerCase(), // PENDING → pending
+      status: normalizeStatus(w.status),
       date: w.createdAt,
     }));
 
