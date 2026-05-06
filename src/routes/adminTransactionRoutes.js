@@ -7,7 +7,7 @@ const {
   updateWithdrawalStatus,
 } = require("../controllers/adminTransactionController");
 
-const { protect, adminOnly } = require("../middleware/authMiddleware");
+const { protect, adminOnly } = require("../middleware/adminAuthMiddleware");
 
 // ======================================
 // GET ALL TRANSACTIONS (ADMIN ONLY)
