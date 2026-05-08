@@ -83,7 +83,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/withdraw", withdrawRoutes);
 app.use("/api/transactions", transactionsRoutes);
-app.use("/api/referral", referralRoutes);
+app.use("/api/referrals", referralRoutes);
 app.use("/api/admin", adminAuthRoutes);
 app.use("/api/admin/transactions", adminTransactionRoutes);
 
