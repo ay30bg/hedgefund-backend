@@ -2,6 +2,7 @@ const axios = require("axios");
 const crypto = require("crypto");
 const Payment = require("../models/Payment");
 const User = require("../models/User");
+const Referral = require("../models/Referral");
 
 // ==============================
 // CREATE PAYMENT (BSC)
@@ -76,10 +77,134 @@ exports.createPayment = async (req, res) => {
 // ==============================
 // WEBHOOK (AUTO CREDIT)
 // ==============================
+// exports.paymentWebhook = async (req, res) => {
+//   try {
+//     // =========================
+//     // 1. RAW BODY (CRITICAL)
+//     // =========================
+//     const rawBody = req.body.toString();
+
+//     let payload;
+//     try {
+//       payload = JSON.parse(rawBody);
+//     } catch (err) {
+//       console.log("❌ Invalid JSON");
+//       return res.sendStatus(400);
+//     }
+
+//     console.log("📩 Webhook received:", payload);
+
+//     // =========================
+//     // 2. ENV CHECK
+//     // =========================
+//     const ipnSecret = process.env.NOWPAYMENTS_IPN_SECRET;
+//     if (!ipnSecret) {
+//       console.error("❌ Missing IPN secret");
+//       return res.sendStatus(500);
+//     }
+
+//     // =========================
+//     // 3. VERIFY SIGNATURE
+//     // =========================
+//     const receivedSig = req.headers["x-nowpayments-sig"];
+
+//     const expectedSig = crypto
+//       .createHmac("sha512", ipnSecret)
+//       .update(rawBody)
+//       .digest("hex");
+
+//     if (!receivedSig || expectedSig !== receivedSig) {
+//       console.log("❌ Invalid signature");
+//       return res.sendStatus(401);
+//     }
+
+//     // =========================
+//     // 4. VALIDATE STATUS
+//     // =========================
+//     const validStatuses = [
+//       "waiting",
+//       "confirming",
+//       "confirmed",
+//       "sending",
+//       "finished",
+//       "failed",
+//       "expired",
+//     ];
+
+//     if (!validStatuses.includes(payload.payment_status)) {
+//       console.log("❌ Invalid status:", payload.payment_status);
+//       return res.sendStatus(400);
+//     }
+
+//     // =========================
+//     // 5. ATOMIC PAYMENT UPDATE
+//     // =========================
+//     const updatedPayment = await Payment.findOneAndUpdate(
+//       {
+//         paymentId: payload.payment_id,
+//       },
+//       {
+//         $set: {
+//           status: payload.payment_status,
+//         },
+//       },
+//       { new: true }
+//     );
+
+//     if (!updatedPayment) {
+//       console.log("⚠️ Payment not found:", payload.payment_id);
+//       return res.sendStatus(200);
+//     }
+
+//     // =========================
+//     // 6. CREDIT USER (ONCE ONLY)
+//     // =========================
+//     if (payload.payment_status === "finished") {
+//       const creditedPayment = await Payment.findOneAndUpdate(
+//         {
+//           paymentId: payload.payment_id,
+//           credited: false, // ONLY if not already credited
+//         },
+//         {
+//           $set: { credited: true },
+//         },
+//         { new: true }
+//       );
+
+//       // Only one process will pass this
+//       if (creditedPayment) {
+//         await User.findByIdAndUpdate(creditedPayment.userId, {
+//           $inc: { balance: creditedPayment.amountUSD },
+//         });
+
+//         console.log(
+//           `✅ Credited user ${creditedPayment.userId} with $${creditedPayment.amountUSD}`
+//         );
+//       } else {
+//         console.log("⚠️ Already credited (duplicate webhook)");
+//       }
+//     }
+
+//     // =========================
+//     // 7. OPTIONAL EXTRA LOGGING
+//     // =========================
+//     console.log({
+//       payment_id: payload.payment_id,
+//       status: payload.payment_status,
+//       price_amount: payload.price_amount,
+//     });
+
+//     return res.sendStatus(200);
+//   } catch (err) {
+//     console.error("🔥 WEBHOOK ERROR:", err.message);
+//     return res.sendStatus(500);
+//   }
+// };
+
 exports.paymentWebhook = async (req, res) => {
   try {
     // =========================
-    // 1. RAW BODY (CRITICAL)
+    // 1. RAW BODY (REQUIRED)
     // =========================
     const rawBody = req.body.toString();
 
@@ -87,24 +212,22 @@ exports.paymentWebhook = async (req, res) => {
     try {
       payload = JSON.parse(rawBody);
     } catch (err) {
-      console.log("❌ Invalid JSON");
+      console.log("❌ Invalid JSON payload");
       return res.sendStatus(400);
     }
 
-    console.log("📩 Webhook received:", payload);
+    console.log("📩 Webhook received:", payload.payment_id);
 
     // =========================
-    // 2. ENV CHECK
+    // 2. VERIFY SIGNATURE
     // =========================
     const ipnSecret = process.env.NOWPAYMENTS_IPN_SECRET;
+
     if (!ipnSecret) {
       console.error("❌ Missing IPN secret");
       return res.sendStatus(500);
     }
 
-    // =========================
-    // 3. VERIFY SIGNATURE
-    // =========================
     const receivedSig = req.headers["x-nowpayments-sig"];
 
     const expectedSig = crypto
@@ -112,87 +235,108 @@ exports.paymentWebhook = async (req, res) => {
       .update(rawBody)
       .digest("hex");
 
-    if (!receivedSig || expectedSig !== receivedSig) {
+    if (!receivedSig || receivedSig !== expectedSig) {
       console.log("❌ Invalid signature");
       return res.sendStatus(401);
     }
 
     // =========================
-    // 4. VALIDATE STATUS
+    // 3. VALIDATE STATUS
     // =========================
-    const validStatuses = [
-      "waiting",
-      "confirming",
-      "confirmed",
-      "sending",
-      "finished",
-      "failed",
-      "expired",
-    ];
-
-    if (!validStatuses.includes(payload.payment_status)) {
-      console.log("❌ Invalid status:", payload.payment_status);
+    if (!payload.payment_status) {
       return res.sendStatus(400);
     }
 
     // =========================
-    // 5. ATOMIC PAYMENT UPDATE
+    // 4. UPDATE PAYMENT STATUS
     // =========================
-    const updatedPayment = await Payment.findOneAndUpdate(
-      {
-        paymentId: payload.payment_id,
-      },
-      {
-        $set: {
-          status: payload.payment_status,
-        },
-      },
+    const payment = await Payment.findOneAndUpdate(
+      { paymentId: payload.payment_id },
+      { $set: { status: payload.payment_status } },
       { new: true }
     );
 
-    if (!updatedPayment) {
+    if (!payment) {
       console.log("⚠️ Payment not found:", payload.payment_id);
       return res.sendStatus(200);
     }
 
     // =========================
-    // 6. CREDIT USER (ONCE ONLY)
+    // 5. PROCESS ONLY COMPLETED PAYMENTS
     // =========================
-    if (payload.payment_status === "finished") {
-      const creditedPayment = await Payment.findOneAndUpdate(
-        {
-          paymentId: payload.payment_id,
-          credited: false, // ONLY if not already credited
-        },
-        {
-          $set: { credited: true },
-        },
-        { new: true }
-      );
-
-      // Only one process will pass this
-      if (creditedPayment) {
-        await User.findByIdAndUpdate(creditedPayment.userId, {
-          $inc: { balance: creditedPayment.amountUSD },
-        });
-
-        console.log(
-          `✅ Credited user ${creditedPayment.userId} with $${creditedPayment.amountUSD}`
-        );
-      } else {
-        console.log("⚠️ Already credited (duplicate webhook)");
-      }
+    if (payload.payment_status !== "finished") {
+      return res.sendStatus(200);
     }
 
     // =========================
-    // 7. OPTIONAL EXTRA LOGGING
+    // 6. IDENTITY CHECK (NO DOUBLE CREDIT)
     // =========================
-    console.log({
-      payment_id: payload.payment_id,
-      status: payload.payment_status,
-      price_amount: payload.price_amount,
-    });
+    const creditedPayment = await Payment.findOneAndUpdate(
+      {
+        paymentId: payload.payment_id,
+        credited: false,
+      },
+      { $set: { credited: true } },
+      { new: true }
+    );
 
+    if (!creditedPayment) {
+      console.log("⚠️ Duplicate webhook ignored");
+      return res.sendStatus(200);
+    }
+
+    // =========================
+    // 7. CREDIT USER BALANCE
+    // =========================
+    const user = await User.findByIdAndUpdate(
+      creditedPayment.userId,
+      {
+        $inc: {
+          balance: creditedPayment.amountUSD,
+        },
+      },
+      { new: true }
+    );
+
+    console.log(
+      `💰 User credited: ${user.email} +$${creditedPayment.amountUSD}`
+    );
+
+    // =========================
+    // 8. REFERRAL SYSTEM (FIRST DEPOSIT ONLY)
+    // =========================
+    if (user.referredBy && !user.hasRewardedReferral) {
+      const reward = creditedPayment.amountUSD * 0.05;
+
+      // CREDIT REFERRER
+      await User.findByIdAndUpdate(user.referredBy, {
+        $inc: {
+          balance: reward,
+          referralEarnings: reward,
+        },
+      });
+
+      // UPDATE REFERRAL RECORD
+      await Referral.findOneAndUpdate(
+        { referredUser: user._id },
+        {
+          reward,
+          status: "Completed",
+        }
+      );
+
+      // MARK USER AS REWARDED
+      user.hasRewardedReferral = true;
+      await user.save();
+
+      console.log(
+        `🎁 Referral reward sent: $${reward} to referrer ${user.referredBy}`
+      );
+    }
+
+    // =========================
+    // 9. FINAL RESPONSE
+    // =========================
     return res.sendStatus(200);
   } catch (err) {
     console.error("🔥 WEBHOOK ERROR:", err.message);
