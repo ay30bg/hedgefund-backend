@@ -1,7 +1,108 @@
+// const mongoose = require("mongoose");
+
+// const userSchema = new mongoose.Schema(
+//   {
+//     email: {
+//       type: String,
+//       required: true,
+//       unique: true,
+//       lowercase: true,
+//       trim: true,
+//     },
+
+//     password: {
+//       type: String,
+//       required: true,
+//     },
+
+//     name: { type: String, default: "" },
+//     avatar: { type: String, default: "" },
+
+//     // ================= REFERRAL =================
+//     referralCode: {
+//       type: String,
+//       unique: true,
+//     },
+
+//     referredBy: {
+//       type: mongoose.Schema.Types.ObjectId,
+//       ref: "User",
+//       default: null,
+//     },
+
+//     referralEarnings: {
+//       type: Number,
+//       default: 0,
+//     },
+
+//     hasRewardedReferral: {
+//       type: Boolean,
+//       default: false,
+//     },
+
+//     balance: {
+//       type: Number,
+//       default: 0,
+//       min: 0,
+//     },
+
+//     walletAddress: {
+//       type: String,
+//       default: "",
+//     },
+
+//     network: {
+//       type: String,
+//       default: "USDT-TRC20",
+//     },
+
+//     withdrawalPassword: {
+//       type: String,
+//       default: "",
+//     },
+
+//     resetToken: {
+//       type: String,
+//       default: null,
+//     },
+
+//     resetTokenExpire: {
+//       type: Date,
+//       default: null,
+//     },
+
+//     currency: {
+//       code: { type: String, default: "USD" },
+//       symbol: { type: String, default: "$" },
+//       rate: { type: Number, default: 1 },
+//     },
+
+//     // ================= OTP =================
+//     isVerified: {
+//       type: Boolean,
+//       default: false,
+//     },
+
+//     otp: {
+//       type: String,
+//       default: null,
+//     },
+
+//     otpExpire: {
+//       type: Date,
+//       default: null,
+//     },
+//   },
+//   { timestamps: true }
+// );
+
+// module.exports = mongoose.model("User", userSchema);
+
 const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
   {
+    // ================= BASIC INFO =================
     email: {
       type: String,
       required: true,
@@ -15,37 +116,54 @@ const userSchema = new mongoose.Schema(
       required: true,
     },
 
-    name: { type: String, default: "" },
-    avatar: { type: String, default: "" },
-
-    // ================= REFERRAL =================
-    referralCode: {
+    name: {
       type: String,
-      unique: true,
+      default: "",
+      trim: true,
     },
 
-    referredBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      default: null,
+    avatar: {
+      type: String,
+      default: "",
     },
 
-    referralEarnings: {
-      type: Number,
-      default: 0,
-    },
-
-    hasRewardedReferral: {
+    // ================= ACCOUNT STATUS =================
+    blocked: {
       type: Boolean,
       default: false,
     },
 
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+
+    // ================= BALANCE =================
     balance: {
       type: Number,
       default: 0,
       min: 0,
     },
 
+    totalDeposit: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    totalWithdraw: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    referralEarnings: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    // ================= WALLET =================
     walletAddress: {
       type: String,
       default: "",
@@ -61,6 +179,54 @@ const userSchema = new mongoose.Schema(
       default: "",
     },
 
+    // ================= CURRENCY =================
+    currency: {
+      code: {
+        type: String,
+        default: "USD",
+      },
+
+      symbol: {
+        type: String,
+        default: "$",
+      },
+
+      rate: {
+        type: Number,
+        default: 1,
+      },
+    },
+
+    // ================= REFERRAL =================
+    referralCode: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+
+    referredBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    hasRewardedReferral: {
+      type: Boolean,
+      default: false,
+    },
+
+    // ================= OTP =================
+    otp: {
+      type: String,
+      default: null,
+    },
+
+    otpExpire: {
+      type: Date,
+      default: null,
+    },
+
+    // ================= RESET PASSWORD =================
     resetToken: {
       type: String,
       default: null,
@@ -71,29 +237,41 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
 
-    currency: {
-      code: { type: String, default: "USD" },
-      symbol: { type: String, default: "$" },
-      rate: { type: Number, default: 1 },
-    },
+    // ================= USER PLANS =================
+    activePlans: [
+      {
+        type: String,
+      },
+    ],
 
-    // ================= OTP =================
-    isVerified: {
-      type: Boolean,
-      default: false,
-    },
+    // ================= USER MACHINES =================
+    machines: [
+      {
+        name: {
+          type: String,
+          required: true,
+        },
 
-    otp: {
-      type: String,
-      default: null,
-    },
+        status: {
+          type: String,
+          default: "active",
+        },
 
-    otpExpire: {
-      type: Date,
-      default: null,
-    },
+        profit: {
+          type: Number,
+          default: 0,
+        },
+
+        startedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
 module.exports = mongoose.model("User", userSchema);
