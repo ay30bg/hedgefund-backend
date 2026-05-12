@@ -14,8 +14,8 @@ exports.createPayment = async (req, res) => {
 
     const amountValue = Number(amount);
 
-    if (!amountValue || amountValue < 10) {
-      return res.status(400).json({ error: "Minimum deposit is $10" });
+    if (!amountValue || amountValue < 5) {
+      return res.status(400).json({ error: "Minimum deposit is $5" });
     }
 
     const baseURL = process.env.BASE_URL;
