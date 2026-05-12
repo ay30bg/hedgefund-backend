@@ -19,6 +19,7 @@ const transactionsRoutes = require("./routes/transactionsRoutes");
 const referralRoutes = require("./routes/referralRoutes");
 const adminAuthRoutes = require("./routes/adminAuthRoutes");
 const adminTransactionRoutes = require("./routes/adminTransactionRoutes");
+const adminUserRoutes = require("./routes/adminUserRoutes");
 
 // Seeders
 const seedMachinesIfEmpty = require("./seed/machineSeed");
@@ -86,6 +87,7 @@ app.use("/api/transactions", transactionsRoutes);
 app.use("/api/referrals", referralRoutes);
 app.use("/api/admin", adminAuthRoutes);
 app.use("/api/admin/transactions", adminTransactionRoutes);
+app.use("/api/admin/users", adminRoutes);
 
 // ================= 404 HANDLER =================
 app.use((req, res) => {
