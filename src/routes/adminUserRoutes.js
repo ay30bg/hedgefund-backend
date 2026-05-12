@@ -6,7 +6,7 @@ const {
   updateUser,
   toggleBanUser,
   deleteUser,
-} = require("../controllers/adminController");
+} = require("../controllers/adminUserController");
 
 const {
   protect,
