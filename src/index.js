@@ -87,7 +87,7 @@ app.use("/api/transactions", transactionsRoutes);
 app.use("/api/referrals", referralRoutes);
 app.use("/api/admin", adminAuthRoutes);
 app.use("/api/admin/transactions", adminTransactionRoutes);
-app.use("/api/admin/users", adminRoutes);
+app.use("/api/admin/users", adminUserRoutes);
 
 // ================= 404 HANDLER =================
 app.use((req, res) => {
