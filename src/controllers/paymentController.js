@@ -264,7 +264,7 @@ const User = require("../models/User");
 const Referral = require("../models/Referral");
 
 // ==============================
-// CREATE PAYMENT (BSC)
+// CREATE PAYMENT (USDT TON)
 // ==============================
 exports.createPayment = async (req, res) => {
   try {
@@ -279,6 +279,7 @@ exports.createPayment = async (req, res) => {
       });
     }
 
+    // Prevent duplicate pending payment
     const existing = await Payment.findOne({
       userId,
       status: { $in: ["waiting", "confirming"] },
@@ -291,12 +292,18 @@ exports.createPayment = async (req, res) => {
 
     const orderId = `TOPUP_${userId}_${Date.now()}`;
 
+    // ==============================
+    // NOWPAYMENTS REQUEST (TON)
+    // ==============================
     const { data } = await axios.post(
       "https://api.nowpayments.io/v1/payment",
       {
         price_amount: amountValue,
         price_currency: "usd",
-        pay_currency: "usdtbsc",
+
+        // TON NETWORK
+        pay_currency: "usdtton",
+
         order_id: orderId,
       },
       {
@@ -306,14 +313,21 @@ exports.createPayment = async (req, res) => {
       }
     );
 
+    // Save payment
     const payment = await Payment.create({
       userId,
       paymentId: data.payment_id,
       orderId,
+
       amountUSD: amountValue,
+
       payAmount: data.pay_amount,
       payCurrency: data.pay_currency,
+
       address: data.pay_address,
+
+      network: "TON",
+
       status: "waiting",
       credited: false,
     });
@@ -338,8 +352,9 @@ exports.approvePayment = async (req, res) => {
   try {
     const { paymentId } = req.params;
 
-    // Find payment
-    const payment = await Payment.findOne({ paymentId });
+    const payment = await Payment.findOne({
+      paymentId,
+    });
 
     if (!payment) {
       return res.status(404).json({
@@ -347,19 +362,20 @@ exports.approvePayment = async (req, res) => {
       });
     }
 
-    // Prevent double credit
+    // Prevent double approval
     if (payment.credited) {
       return res.status(400).json({
         error: "Payment already approved",
       });
     }
 
-    // Update payment
+    // Mark completed
     payment.status = "finished";
     payment.credited = true;
+
     await payment.save();
 
-    // Credit user balance
+    // Credit user
     const user = await User.findByIdAndUpdate(
       payment.userId,
       {
@@ -374,9 +390,9 @@ exports.approvePayment = async (req, res) => {
       `💰 User credited: ${user.email} +$${payment.amountUSD}`
     );
 
-    // =========================
-    // REFERRAL REWARD
-    // =========================
+    // ==============================
+    // REFERRAL BONUS
+    // ==============================
     if (user.referredBy && !user.hasRewardedReferral) {
       const reward = payment.amountUSD * 0.05;
 
@@ -388,7 +404,7 @@ exports.approvePayment = async (req, res) => {
         },
       });
 
-      // Update referral record
+      // Update referral
       await Referral.findOneAndUpdate(
         { referredUser: user._id },
         {
@@ -397,7 +413,7 @@ exports.approvePayment = async (req, res) => {
         }
       );
 
-      // Mark rewarded
+      // Mark referral rewarded
       user.hasRewardedReferral = true;
       await user.save();
 
@@ -411,7 +427,10 @@ exports.approvePayment = async (req, res) => {
       message: "Payment approved successfully",
     });
   } catch (err) {
-    console.error("APPROVE PAYMENT ERROR:", err.message);
+    console.error(
+      "APPROVE PAYMENT ERROR:",
+      err.message
+    );
 
     return res.status(500).json({
       error: "Failed to approve payment",
