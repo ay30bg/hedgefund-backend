@@ -511,39 +511,12 @@ exports.createPayment = async (req, res) => {
     }
 
     // ==============================
-    // PREVENT DUPLICATE PENDING
-    // ==============================
-    const existing = await Payment.findOne({
-      userId,
-      status: { $in: ["waiting", "confirming"] },
-      createdAt: {
-        $gt: Date.now() - 10 * 60 * 1000,
-      },
-    });
-
-    if (existing) {
-      return res.json({
-        paymentId: existing.paymentId,
-
-        address: existing.address,
-
-        memo: existing.memo || null,
-
-        amount: existing.payAmount,
-
-        currency: existing.payCurrency,
-
-        payment_status: existing.status,
-      });
-    }
-
-    // ==============================
     // CREATE ORDER ID
     // ==============================
     const orderId = `TOPUP_${userId}_${Date.now()}`;
 
     // ==============================
-    // NOWPAYMENTS REQUEST
+    // CREATE NOWPAYMENTS PAYMENT
     // ==============================
     const { data } = await axios.post(
       "https://api.nowpayments.io/v1/payment",
@@ -564,7 +537,10 @@ exports.createPayment = async (req, res) => {
       }
     );
 
-    console.log("NOWPAYMENTS RESPONSE:", data);
+    console.log(
+      "NOWPAYMENTS RESPONSE:",
+      data
+    );
 
     // ==============================
     // SAVE PAYMENT
@@ -578,7 +554,6 @@ exports.createPayment = async (req, res) => {
 
       amountUSD: amountValue,
 
-      // IMPORTANT
       payAmount:
         data.pay_amount ||
         data.outcome_amount ||
@@ -587,13 +562,9 @@ exports.createPayment = async (req, res) => {
       payCurrency:
         data.pay_currency || "usdtton",
 
-      // IMPORTANT
       address:
-        data.pay_address ||
-        data.invoice_url ||
-        "",
+        data.pay_address || "",
 
-      // TON MEMO / COMMENT
       memo:
         data.payin_extra_id ||
         data.extra_id ||
