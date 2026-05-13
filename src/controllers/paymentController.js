@@ -512,19 +512,14 @@ exports.createPayment = async (req, res) => {
 // ==============================
 exports.paymentWebhook = async (req, res) => {
   try {
-    // =========================
-    // RAW BODY
-    // =========================
-    const rawBody = req.body.toString();
+    // RAW BUFFER
+    const rawBody = req.body;
 
-    let payload;
+    // CONVERT BUFFER TO STRING
+    const rawString = rawBody.toString("utf8");
 
-    try {
-      payload = JSON.parse(rawBody);
-    } catch (err) {
-      console.log("❌ Invalid JSON payload");
-      return res.sendStatus(400);
-    }
+    // PARSE JSON
+    const payload = JSON.parse(rawString);
 
     console.log(
       "📩 Webhook received:",
@@ -537,17 +532,12 @@ exports.paymentWebhook = async (req, res) => {
     const ipnSecret =
       process.env.NOWPAYMENTS_IPN_SECRET;
 
-    if (!ipnSecret) {
-      console.error("❌ Missing IPN secret");
-      return res.sendStatus(500);
-    }
-
     const receivedSig =
       req.headers["x-nowpayments-sig"];
 
     const expectedSig = crypto
       .createHmac("sha512", ipnSecret)
-      .update(rawBody)
+      .update(rawString)
       .digest("hex");
 
     if (
@@ -555,18 +545,17 @@ exports.paymentWebhook = async (req, res) => {
       receivedSig !== expectedSig
     ) {
       console.log("❌ Invalid signature");
+
+      console.log({
+        receivedSig,
+        expectedSig,
+      });
+
       return res.sendStatus(401);
     }
 
     // =========================
-    // VALIDATE STATUS
-    // =========================
-    if (!payload.payment_status) {
-      return res.sendStatus(400);
-    }
-
-    // =========================
-    // UPDATE PAYMENT STATUS
+    // UPDATE PAYMENT
     // =========================
     const payment =
       await Payment.findOneAndUpdate(
@@ -583,25 +572,20 @@ exports.paymentWebhook = async (req, res) => {
 
     if (!payment) {
       console.log(
-        "⚠️ Payment not found:",
-        payload.payment_id
+        "⚠️ Payment not found"
       );
 
       return res.sendStatus(200);
     }
 
-    // =========================
-    // PROCESS ONLY FINISHED
-    // =========================
+    // ONLY FINISHED
     if (
       payload.payment_status !== "finished"
     ) {
       return res.sendStatus(200);
     }
 
-    // =========================
     // PREVENT DOUBLE CREDIT
-    // =========================
     const creditedPayment =
       await Payment.findOneAndUpdate(
         {
@@ -624,9 +608,7 @@ exports.paymentWebhook = async (req, res) => {
       return res.sendStatus(200);
     }
 
-    // =========================
     // CREDIT USER
-    // =========================
     const user =
       await User.findByIdAndUpdate(
         creditedPayment.userId,
@@ -640,7 +622,7 @@ exports.paymentWebhook = async (req, res) => {
       );
 
     console.log(
-      `💰 User credited: ${user.email} +$${creditedPayment.amountUSD}`
+      `💰 User credited: ${user.email}`
     );
 
     // =========================
@@ -653,7 +635,6 @@ exports.paymentWebhook = async (req, res) => {
       const reward =
         creditedPayment.amountUSD * 0.05;
 
-      // CREDIT REFERRER
       await User.findByIdAndUpdate(
         user.referredBy,
         {
@@ -664,7 +645,6 @@ exports.paymentWebhook = async (req, res) => {
         }
       );
 
-      // UPDATE REFERRAL RECORD
       await Referral.findOneAndUpdate(
         {
           referredUser: user._id,
@@ -675,7 +655,6 @@ exports.paymentWebhook = async (req, res) => {
         }
       );
 
-      // MARK USER
       user.hasRewardedReferral = true;
 
       await user.save();
@@ -689,12 +668,13 @@ exports.paymentWebhook = async (req, res) => {
   } catch (err) {
     console.error(
       "🔥 WEBHOOK ERROR:",
-      err.message
+      err
     );
 
     return res.sendStatus(500);
   }
 };
+
 
 // ==============================
 // GET USER PAYMENTS
