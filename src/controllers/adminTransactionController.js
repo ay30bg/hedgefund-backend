@@ -280,29 +280,96 @@ const updateWithdrawalStatus = async (
 
     const { status } = req.body;
 
+    // =========================
+    // FIND WITHDRAWAL
+    // =========================
     const withdrawal =
-      await Withdrawal.findByIdAndUpdate(
-        id,
-        {
-          status: status.toUpperCase(),
-
-          processedAt: new Date(),
-        },
-        { new: true }
-      );
+      await Withdrawal.findById(id);
 
     if (!withdrawal) {
       return res.status(404).json({
-        message:
-          "Withdrawal not found",
+        message: "Withdrawal not found",
       });
     }
 
-    return res.status(200).json({
-      message:
-        "Withdrawal status updated",
+    // =========================
+    // PREVENT DOUBLE PROCESSING
+    // =========================
+    if (
+      withdrawal.status !== "PENDING"
+    ) {
+      return res.status(400).json({
+        message:
+          "Withdrawal already processed",
+      });
+    }
 
-      data: withdrawal,
+    // =========================
+    // FIND USER
+    // =========================
+    const user = await User.findById(
+      withdrawal.userId
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    // =========================
+    // APPROVE WITHDRAWAL
+    // =========================
+    if (
+      status.toLowerCase() ===
+      "approved"
+    ) {
+      withdrawal.status = "APPROVED";
+
+      withdrawal.processedAt =
+        new Date();
+
+      await withdrawal.save();
+
+      return res.status(200).json({
+        message:
+          "Withdrawal approved successfully",
+
+        data: withdrawal,
+      });
+    }
+
+    // =========================
+    // REJECT WITHDRAWAL
+    // =========================
+    if (
+      status.toLowerCase() ===
+      "rejected"
+    ) {
+      // Refund user balance
+      user.balance +=
+        withdrawal.amount;
+
+      await user.save();
+
+      // Update withdrawal
+      withdrawal.status = "REJECTED";
+
+      withdrawal.processedAt =
+        new Date();
+
+      await withdrawal.save();
+
+      return res.status(200).json({
+        message:
+          "Withdrawal rejected and funds refunded",
+
+        data: withdrawal,
+      });
+    }
+
+    return res.status(400).json({
+      message: "Invalid status",
     });
   } catch (error) {
     console.error(
