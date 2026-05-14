@@ -140,6 +140,8 @@
 
 // controllers/adminUserController.js
 
+// controllers/adminUserController.js
+
 const User = require("../models/User");
 
 // ================= FORMAT USER =================
@@ -151,7 +153,7 @@ const formatUser = (user) => {
     name: user.name || "",
     email: user.email || "",
 
-    // ================= BALANCES =================
+    // ================= BALANCE =================
     balance: user.balance || 0,
 
     totalDeposit:
@@ -182,23 +184,37 @@ const formatUser = (user) => {
 
     // ================= ARRAYS =================
     activePlans:
-      user.activePlans || [],
+      Array.isArray(
+        user.activePlans
+      )
+        ? user.activePlans
+        : [],
 
     machines:
-      user.machines || [],
+      Array.isArray(
+        user.machines
+      )
+        ? user.machines
+        : [],
 
     // ================= COUNTS =================
-
-    // activePlans are strings
     activePlansCount:
-      user.activePlans?.length || 0,
+      Array.isArray(
+        user.activePlans
+      )
+        ? user.activePlans.length
+        : 0,
 
-    // machines contain status
     activeMachinesCount:
-      user.machines?.filter(
-        (m) =>
-          m.status === "active"
-      ).length || 0,
+      Array.isArray(
+        user.machines
+      )
+        ? user.machines.filter(
+            (m) =>
+              m.status ===
+              "active"
+          ).length
+        : 0,
   };
 };
 
@@ -212,8 +228,11 @@ exports.getUsers = async (
       createdAt: -1,
     });
 
+    // ================= FORMAT USERS =================
     const formattedUsers =
-      users.map(formatUser);
+      users.map((user) =>
+        formatUser(user)
+      );
 
     res.status(200).json({
       success: true,
@@ -241,6 +260,7 @@ exports.updateUser = async (
       network,
     } = req.body;
 
+    // ================= UPDATE =================
     const user =
       await User.findByIdAndUpdate(
         req.params.id,
