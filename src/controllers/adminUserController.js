@@ -138,6 +138,8 @@
 
 // controllers/adminUserController.js
 
+// controllers/adminUserController.js
+
 const User = require("../models/User");
 
 // ================= FORMAT USER =================
@@ -145,9 +147,11 @@ const formatUser = (user) => {
   return {
     _id: user._id,
 
-    name: user.name,
-    email: user.email,
+    // ================= BASIC INFO =================
+    name: user.name || "",
+    email: user.email || "",
 
+    // ================= BALANCES =================
     balance: user.balance || 0,
 
     totalDeposit:
@@ -159,12 +163,14 @@ const formatUser = (user) => {
     referralEarnings:
       user.referralEarnings || 0,
 
+    // ================= WALLET =================
     walletAddress:
       user.walletAddress || "",
 
     network:
       user.network || "",
 
+    // ================= STATUS =================
     blocked:
       user.blocked || false,
 
@@ -174,20 +180,20 @@ const formatUser = (user) => {
     createdAt:
       user.createdAt,
 
-    // ================= FULL ARRAYS =================
+    // ================= ARRAYS =================
     activePlans:
       user.activePlans || [],
 
     machines:
       user.machines || [],
 
-    // ================= ACTIVE COUNTS =================
-    activePlansCount:
-      user.activePlans?.filter(
-        (p) =>
-          p.status === "active"
-      ).length || 0,
+    // ================= COUNTS =================
 
+    // activePlans are strings
+    activePlansCount:
+      user.activePlans?.length || 0,
+
+    // machines contain status
     activeMachinesCount:
       user.machines?.filter(
         (m) =>
