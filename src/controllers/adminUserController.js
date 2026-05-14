@@ -4,12 +4,113 @@ const Market = require("../models/Market");
 const Investment = require("../models/Investment");
 
 // ================= GET USERS =================
+// exports.getUsers = async (req, res) => {
+//   try {
+//     const users = await User.find()
+//       .sort({
+//         createdAt: -1,
+//       })
+//       .lean();
+
+//     // ================= ENRICH USERS =================
+//     const enrichedUsers =
+//       await Promise.all(
+//         users.map(async (user) => {
+//           // ================= TOTAL DEPOSIT =================
+//           const deposits =
+//             await Payment.find({
+//               userId: user._id,
+//               status: "finished",
+//             });
+
+//           const totalDeposit =
+//             deposits.reduce(
+//               (sum, item) =>
+//                 sum +
+//                 (item.amountUSD || 0),
+//               0
+//             );
+
+//           // ================= ACTIVE PLANS =================
+//           const totalActivePlans =
+//             await Investment.countDocuments(
+//               {
+//                 user: user._id,
+//                 status: "active",
+//               }
+//             );
+
+//           // ================= ACTIVE MACHINES =================
+//           const totalMachines =
+//             await Market.countDocuments({
+//               userId: user._id,
+
+//               status: {
+//                 $in: [
+//                   "running",
+//                   "claimable",
+//                 ],
+//               },
+//             });
+
+//           return {
+//             ...user,
+
+//             totalDeposit,
+
+//             totalActivePlans,
+
+//             totalMachines,
+//           };
+//         })
+//       );
+
+//     res.status(200).json({
+//       success: true,
+//       users: enrichedUsers,
+//     });
+//   } catch (error) {
+//     res.status(500).json({
+//       success: false,
+//       message: error.message,
+//     });
+//   }
+// };
+
+// ================= GET USERS =================
 exports.getUsers = async (req, res) => {
   try {
-    const users = await User.find()
+    const page =
+      Number(req.query.page) || 1;
+
+    const limit =
+      Number(req.query.limit) || 5;
+
+    const search =
+      req.query.search || "";
+
+    const skip =
+      (page - 1) * limit;
+
+    // ================= SEARCH FILTER =================
+    const filter = {
+      email: {
+        $regex: search,
+        $options: "i",
+      },
+    };
+
+    // ================= TOTAL USERS =================
+    const totalUsers =
+      await User.countDocuments(filter);
+
+    // ================= USERS =================
+    const users = await User.find(filter)
       .sort({
         createdAt: -1,
       })
+      .skip(skip)
+      .limit(limit)
       .lean();
 
     // ================= ENRICH USERS =================
@@ -44,7 +145,6 @@ exports.getUsers = async (req, res) => {
           const totalMachines =
             await Market.countDocuments({
               userId: user._id,
-
               status: {
                 $in: [
                   "running",
@@ -55,11 +155,8 @@ exports.getUsers = async (req, res) => {
 
           return {
             ...user,
-
             totalDeposit,
-
             totalActivePlans,
-
             totalMachines,
           };
         })
@@ -68,6 +165,14 @@ exports.getUsers = async (req, res) => {
     res.status(200).json({
       success: true,
       users: enrichedUsers,
+
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(
+          totalUsers / limit
+        ),
+        totalUsers,
+      },
     });
   } catch (error) {
     res.status(500).json({
@@ -78,75 +183,6 @@ exports.getUsers = async (req, res) => {
 };
 
 // ================= GET USER STATS =================
-// exports.getUserStats = async (
-//   req,
-//   res
-// ) => {
-//   try {
-//     const userId = req.params.id;
-
-//     // ================= USER =================
-//     const user =
-//       await User.findById(userId);
-
-//     if (!user) {
-//       return res.status(404).json({
-//         success: false,
-//         message: "User not found",
-//       });
-//     }
-
-//     // ================= TOTAL DEPOSIT =================
-//     const deposits =
-//       await Payment.find({
-//         userId,
-//         status: "finished",
-//       });
-
-//     const totalDeposit =
-//       deposits.reduce(
-//         (sum, item) =>
-//           sum + (item.amountUSD || 0),
-//         0
-//       );
-
-//     // ================= ACTIVE PLANS =================
-//     const totalActivePlans =
-//       await Investment.countDocuments({
-//         user: userId,
-//         status: "active",
-//       });
-
-//     // ================= ACTIVE MACHINES =================
-//     const totalMachines =
-//       await Market.countDocuments({
-//         userId,
-
-//         status: {
-//           $in: [
-//             "running",
-//             "claimable",
-//           ],
-//         },
-//       });
-
-//     res.status(200).json({
-//       success: true,
-
-//       stats: {
-//         totalDeposit,
-//         totalActivePlans,
-//         totalMachines,
-//       },
-//     });
-//   } catch (error) {
-//     res.status(500).json({
-//       success: false,
-//       message: error.message,
-//     });
-//   }
-// };
-
 exports.getUserStats = async (
   req,
   res
