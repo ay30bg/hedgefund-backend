@@ -18,6 +18,7 @@ const withdrawRoutes = require("./routes/withdrawRoutes");
 const transactionsRoutes = require("./routes/transactionsRoutes");
 const referralRoutes = require("./routes/referralRoutes");
 const adminAuthRoutes = require("./routes/adminAuthRoutes");
+const adminDashboardRoutes = require("./routes/adminDashboardRoutes");
 const adminTransactionRoutes = require("./routes/adminTransactionRoutes");
 const adminUserRoutes = require("./routes/adminUserRoutes");
 
@@ -85,6 +86,7 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/withdraw", withdrawRoutes);
 app.use("/api/transactions", transactionsRoutes);
 app.use("/api/referrals", referralRoutes);
+app.use("/api/admin", adminDashboardRoutes);
 app.use("/api/admin", adminAuthRoutes);
 app.use("/api/admin/transactions", adminTransactionRoutes);
 app.use("/api/admin", adminUserRoutes);
