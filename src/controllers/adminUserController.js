@@ -136,68 +136,78 @@
 //   }
 // };
 
+// controllers/adminUserController.js
+
 const User = require("../models/User");
 
+// ================= FORMAT USER =================
+const formatUser = (user) => {
+  return {
+    _id: user._id,
+
+    name: user.name,
+    email: user.email,
+
+    balance: user.balance || 0,
+
+    totalDeposit:
+      user.totalDeposit || 0,
+
+    totalWithdraw:
+      user.totalWithdraw || 0,
+
+    referralEarnings:
+      user.referralEarnings || 0,
+
+    walletAddress:
+      user.walletAddress || "",
+
+    network:
+      user.network || "",
+
+    blocked:
+      user.blocked || false,
+
+    isVerified:
+      user.isVerified || false,
+
+    createdAt:
+      user.createdAt,
+
+    // ================= FULL ARRAYS =================
+    activePlans:
+      user.activePlans || [],
+
+    machines:
+      user.machines || [],
+
+    // ================= ACTIVE COUNTS =================
+    activePlansCount:
+      user.activePlans?.filter(
+        (p) =>
+          p.status === "active"
+      ).length || 0,
+
+    activeMachinesCount:
+      user.machines?.filter(
+        (m) =>
+          m.status === "active"
+      ).length || 0,
+  };
+};
+
 // ================= GET USERS =================
-exports.getUsers = async (req, res) => {
+exports.getUsers = async (
+  req,
+  res
+) => {
   try {
     const users = await User.find().sort({
       createdAt: -1,
     });
 
-    // ================= FORMAT USERS =================
-    const formattedUsers = users.map(
-      (user) => ({
-        _id: user._id,
-
-        name: user.name,
-        email: user.email,
-
-        balance: user.balance || 0,
-
-        totalDeposit:
-          user.totalDeposit || 0,
-
-        totalWithdraw:
-          user.totalWithdraw || 0,
-
-        referralEarnings:
-          user.referralEarnings || 0,
-
-        walletAddress:
-          user.walletAddress || "",
-
-        network:
-          user.network || "",
-
-        blocked:
-          user.blocked || false,
-
-        isVerified:
-          user.isVerified || false,
-
-        createdAt:
-          user.createdAt,
-
-        // ================= FULL ARRAYS =================
-        activePlans:
-          user.activePlans || [],
-
-        machines:
-          user.machines || [],
-
-        // ================= COUNTS =================
-        activePlansCount:
-          user.activePlans?.length ||
-          0,
-
-        machinesCount:
-          user.machines?.filter(
-            (m) =>
-              m.status === "active"
-          ).length || 0,
-      })
-    );
+    const formattedUsers =
+      users.map(formatUser);
 
     res.status(200).json({
       success: true,
@@ -249,64 +259,13 @@ exports.updateUser = async (
       });
     }
 
-    // ================= FORMAT RESPONSE =================
-    const formattedUser = {
-      _id: user._id,
-
-      name: user.name,
-      email: user.email,
-
-      balance:
-        user.balance || 0,
-
-      totalDeposit:
-        user.totalDeposit || 0,
-
-      totalWithdraw:
-        user.totalWithdraw || 0,
-
-      referralEarnings:
-        user.referralEarnings || 0,
-
-      walletAddress:
-        user.walletAddress || "",
-
-      network:
-        user.network || "",
-
-      blocked:
-        user.blocked || false,
-
-      isVerified:
-        user.isVerified || false,
-
-      createdAt:
-        user.createdAt,
-
-      activePlans:
-        user.activePlans || [],
-
-      machines:
-        user.machines || [],
-
-      activePlansCount:
-        user.activePlans?.length ||
-        0,
-
-      machinesCount:
-        user.machines?.filter(
-          (m) =>
-            m.status === "active"
-        ).length || 0,
-    };
-
     res.status(200).json({
       success: true,
 
       message:
         "User updated successfully",
 
-      user: formattedUser,
+      user: formatUser(user),
     });
   } catch (error) {
     res.status(500).json({
@@ -317,97 +276,44 @@ exports.updateUser = async (
 };
 
 // ================= TOGGLE BAN =================
-exports.toggleBanUser = async (
-  req,
-  res
-) => {
-  try {
-    const user =
-      await User.findById(
-        req.params.id
-      );
+exports.toggleBanUser =
+  async (req, res) => {
+    try {
+      const user =
+        await User.findById(
+          req.params.id
+        );
 
-    if (!user) {
-      return res.status(404).json({
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message:
+            "User not found",
+        });
+      }
+
+      // ================= TOGGLE =================
+      user.blocked =
+        !user.blocked;
+
+      await user.save();
+
+      res.status(200).json({
+        success: true,
+
+        message: user.blocked
+          ? "User banned successfully"
+          : "User unbanned successfully",
+
+        user: formatUser(user),
+      });
+    } catch (error) {
+      res.status(500).json({
         success: false,
-        message:
-          "User not found",
+        message: error.message,
       });
     }
-
-    // ================= TOGGLE =================
-    user.blocked =
-      !user.blocked;
-
-    await user.save();
-
-    // ================= FORMAT RESPONSE =================
-    const formattedUser = {
-      _id: user._id,
-
-      name: user.name,
-      email: user.email,
-
-      balance:
-        user.balance || 0,
-
-      totalDeposit:
-        user.totalDeposit || 0,
-
-      totalWithdraw:
-        user.totalWithdraw || 0,
-
-      referralEarnings:
-        user.referralEarnings || 0,
-
-      walletAddress:
-        user.walletAddress || "",
-
-      network:
-        user.network || "",
-
-      blocked:
-        user.blocked || false,
-
-      isVerified:
-        user.isVerified || false,
-
-      createdAt:
-        user.createdAt,
-
-      activePlans:
-        user.activePlans || [],
-
-      machines:
-        user.machines || [],
-
-      activePlansCount:
-        user.activePlans?.length ||
-        0,
-
-      machinesCount:
-        user.machines?.filter(
-          (m) =>
-            m.status === "active"
-        ).length || 0,
-    };
-
-    res.status(200).json({
-      success: true,
-
-      message: user.blocked
-        ? "User banned successfully"
-        : "User unbanned successfully",
-
-      user: formattedUser,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+  };
 
 // ================= DELETE USER =================
 exports.deleteUser = async (
