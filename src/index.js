@@ -37,6 +37,7 @@ const allowedOrigins = [
   "http://localhost:3000",
   "https://hedgefund-power.vercel.app",
   "https://admin-hedgefund.vercel.app",
+  "https://www.hedgefundpower.vip",
 ];
 
 app.use(
