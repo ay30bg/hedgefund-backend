@@ -10,8 +10,8 @@ exports.createWithdrawal = async (req, res) => {
     // =========================
     // 1. MINIMUM CHECK
     // =========================
-    if (!amount || amount < 20) {
-      return res.status(400).json({ message: "Minimum withdrawal is $20" });
+    if (!amount || amount < 50) {
+      return res.status(400).json({ message: "Minimum withdrawal is $50" });
     }
 
     const user = await User.findById(userId);
@@ -109,7 +109,7 @@ exports.createWithdrawal = async (req, res) => {
     // =========================
     // 8. CALCULATIONS
     // =========================
-    const fee = amount * 0.05;
+    const fee = amount * 0.03;
     const receiveAmount = amount - fee;
 
     // Deduct balance immediately
