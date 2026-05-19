@@ -1,47 +1,23 @@
-// const nodemailer = require("nodemailer");
-
-// const sendEmail = async (options) => {
-//   const transporter = nodemailer.createTransport({
-//     service: "gmail",
-//     auth: {
-//       user: process.env.EMAIL_USER,
-//       pass: process.env.EMAIL_PASS
-//     }
-//   });
-
-//   const mailOptions = {
-//     from: `"HedgeFund Power" <${process.env.EMAIL_USER}>`,
-//     to: options.email,
-//     subject: options.subject,
-//     html: options.message
-//   };
-
-//   await transporter.sendMail(mailOptions);
-// };
-
-// module.exports = sendEmail;
-
 const nodemailer = require("nodemailer");
 
 const sendEmail = async (options) => {
   const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
+    service: "gmail",
     auth: {
       user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
+      pass: process.env.EMAIL_PASS
+    }
   });
 
   const mailOptions = {
     from: `"HedgeFund Power" <${process.env.EMAIL_USER}>`,
     to: options.email,
     subject: options.subject,
-    html: options.message,
+    html: options.message
   };
 
   await transporter.sendMail(mailOptions);
 };
 
 module.exports = sendEmail;
+
